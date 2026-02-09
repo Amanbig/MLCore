@@ -1,0 +1,71 @@
+# --------------------
+# Virtual environments
+# --------------------
+.venv/
+venv/
+env/
+ENV/
+
+# --------------------
+# Python cache
+# --------------------
+__pycache__/
+*.py[cod]
+*$py.class
+
+# --------------------
+# C extensions
+# --------------------
+*.so
+
+# --------------------
+# Distribution / packaging
+# --------------------
+build/
+dist/
+*.egg-info/
+.eggs/
+
+# --------------------
+# uv
+# --------------------
+# Keep uv.lock (important for reproducibility)
+# DO NOT ignore uv.lock
+
+# --------------------
+# Environment variables
+# --------------------
+.env
+.env.*
+!.env.example
+
+# --------------------
+# Logs
+# --------------------
+*.log
+
+# --------------------
+# Testing / coverage
+# --------------------
+.coverage
+.coverage.*
+htmlcov/
+.pytest_cache/
+
+# --------------------
+# Type checkers
+# --------------------
+.mypy_cache/
+.ruff_cache/
+
+# --------------------
+# IDEs
+# --------------------
+.vscode/
+.idea/
+
+# --------------------
+# OS files
+# --------------------
+.DS_Store
+Thumbs.db

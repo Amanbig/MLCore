@@ -1,0 +1,28 @@
+[build-system]
+requires = ["setuptools>=68","wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "MLCoreServer"
+description = "This is the fastapi based ml server"
+requires-python = ">=3.10"
+version = "0.1.0"
+dependencies = [
+    "fastapi",
+    "uvicorn[standard]",
+    "pydantic>=2",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest",
+    "ruff",
+    "mypy"
+]
+
+[project.scripts]
+dev = "scripts.server.cli:run_dev"
+start = "scripts.server.cli:run_start"
+
+[tool.setuptools.packages.find]
+where = ["src","."]
