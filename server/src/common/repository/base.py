@@ -1,7 +1,7 @@
 from os import error
 from pydantic.main import BaseModel
 from sqlalchemy.orm.session import Session
-from typing import Any, Union, Optional, Generic,TypeVar
+from typing import Any, List, Union, Optional, Generic,TypeVar
 from sqlalchemy.orm.strategy_options import joinedload
 
 T = TypeVar("T")
@@ -14,7 +14,7 @@ class BaseRepository(Generic[T]):
         db: Session,
         filters: Union[BaseModel,dict,None] = None,
         load_relationships:Optional[list[str]] = None
-    ):
+    )->List[T]:
         query = db.query(self.model)
         
         if load_relationships:
@@ -41,7 +41,7 @@ class BaseRepository(Generic[T]):
         db:Session,
         obj_in: Any,
         commit: bool = True
-    ):
+    )->T:
         if isinstance(obj_in,self.model):
             db_obj = obj_in
         elif hasattr(obj_in,"model_dump"):
@@ -68,7 +68,7 @@ class BaseRepository(Generic[T]):
         db_obj: Any,
         obj_in: Any,
         commit: bool = True
-    ):
+    )->T:
         if hasattr(obj_in,"model_dump"):
             updated_data = obj_in.model_dump(exclude_unset=True)
         else:
@@ -93,7 +93,7 @@ class BaseRepository(Generic[T]):
         db:Session,
         id: Any,
         load_relationships:Optional[list[str]] = None
-    ):
+    )->T | None:
         query = db.query(self.model)
         
         if load_relationships:
@@ -112,7 +112,7 @@ class BaseRepository(Generic[T]):
         self,
         db:Session,
         id: Any,
-    ):
+    )->Optional[T]:
         obj = self.get_by_id(db,id)
         try:
             db.delete(obj)
