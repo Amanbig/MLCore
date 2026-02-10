@@ -1,9 +1,8 @@
 from pydantic_settings import BaseSettings
 
 class Settings(BaseSettings):
-    DATABASE_URL : str
-    APP_ENV: str
-    JWT_SECRET: str
+    APP_ENV: str | None
+    JWT_SECRET: str | None
     
     class Config:
         env_file = ".env"

@@ -11,7 +11,9 @@ dependencies = [
     "fastapi",
     "uvicorn[standard]",
     "pydantic>=2",
-    "pydantic_settings"
+    "pydantic_settings",
+    "SQLAlchemy-Utils",
+    "SQLAlchemy"
 ]
 
 [project.optional-dependencies]
