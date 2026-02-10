@@ -7,8 +7,8 @@ class User(Base):
     __tablename__ = Tables.USERS
     
     id: Column[UUID]
-    Username: Column[String]
-    Email: Column[String]
+    username: Column[String]
+    email: Column[String]
     phone: Column[String]
     
     password_hash: Column[String]
