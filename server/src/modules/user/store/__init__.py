@@ -1,7 +1,7 @@
-from .model import User
+from .model import User as UserModel
 from .repository import UserRepository
 
 __all__ = [
-    "User",
+    "UserModel",
     "UserRepository"
 ]
