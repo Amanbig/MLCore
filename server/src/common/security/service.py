@@ -1,7 +1,6 @@
 from typing import Any
-from fastapi import Depends, HTTPException, Request, Response
+from fastapi import Depends, HTTPException, Request
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
-from starlette.responses import JSONResponse
 from src.common.security.utils.cookie import CookieManager
 from src.common.security.utils.jwt import JWTManager
 from src.common.config.config import settings
@@ -11,9 +10,11 @@ security = HTTPBearer(auto_error=False)
 class Security:
     
     def __init__(self):
+        
         self.jwt_manager = JWTManager(
             settings.JWT_SECRET,
-            settings.JWT_ALGORITHM
+            settings.JWT_ALGORITHM,
+            settings.JWT_EXPIRY
         )
         
         self.cookie_manager = CookieManager(payload={
@@ -27,7 +28,7 @@ class Security:
         
         
         
-    def generate_auth_token(self,data: Any, response:Response):
+    def generate_auth_token(self,data: Any):
         token = self.jwt_manager.generate_token(data)
         return token
         
