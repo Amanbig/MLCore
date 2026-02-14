@@ -1,4 +1,4 @@
-from pydantic import BaseModel, EmailStr, model_validator
+from pydantic import BaseModel, EmailStr
 
 class SignupRequest(BaseModel):
     username:str
@@ -7,9 +7,9 @@ class SignupRequest(BaseModel):
     phone: str
     
 class SignupResponse(BaseModel):
-    username:str
-    email: EmailStr
-    phone:str
+    email:EmailStr | None
+    phone: str | None
+    username: str | None
     token:str
     
 class LoginRequest(BaseModel):
@@ -18,12 +18,12 @@ class LoginRequest(BaseModel):
     password: str
     
 class LoginResponse(BaseModel):
-    email:str
-    phone: str
-    username: str
+    email:EmailStr | None
+    phone: str | None
+    username: str | None
     token: str
     
 class AuthToken(BaseModel):
-    email:str
-    phone:str
-    username:str
+    email:EmailStr | None
+    phone:str | None
+    username:str | None
