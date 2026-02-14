@@ -1,4 +1,5 @@
-from sqlalchemy import UUID, String
+from sqlalchemy import UUID, Integer, String
+from sqlalchemy.orm import Mapped , mapped_column
 from sqlalchemy.schema import Column
 from src.common.db.base import Base
 from src.common.db.tables import Tables
@@ -6,9 +7,9 @@ from src.common.db.tables import Tables
 class User(Base):
     __tablename__ = Tables.USERS
     
-    id: Column[UUID]
-    username: Column[String]
-    email: Column[String]
-    phone: Column[String]
+    id: Mapped[UUID] = mapped_column(Integer,primary_key=True,default=None)
+    username: Mapped[String] = mapped_column(String,default=None)
+    email: Mapped[String] = mapped_column(String,default=None)
+    phone: Mapped[String] = mapped_column(String,default=None)
     
-    password_hash: Column[String]
+    password_hash: Mapped[String] = mapped_column(String, default=None)
