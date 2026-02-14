@@ -15,7 +15,8 @@ dependencies = [
     "SQLAlchemy-Utils",
     "SQLAlchemy",
     "alembic",
-    "pydantic[email]"
+    "pydantic[email]",
+    "pyjwt"
 ]
 
 [project.optional-dependencies]
