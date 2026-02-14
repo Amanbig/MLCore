@@ -9,6 +9,7 @@ T = TypeVar("T")
 class BaseRepository(Generic[T]):
     def __init__(self, model):
         self.model = model
+        
     def get(
         self,
         db: Session,

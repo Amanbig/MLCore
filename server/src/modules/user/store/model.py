@@ -1,6 +1,6 @@
-from sqlalchemy import UUID, Integer, String
+from datetime import datetime, timezone
+from sqlalchemy import UUID, Date, Integer, String
 from sqlalchemy.orm import Mapped , mapped_column
-from sqlalchemy.schema import Column
 from src.common.db.base import Base
 from src.common.db.tables import Tables
 
@@ -13,3 +13,6 @@ class User(Base):
     phone: Mapped[String] = mapped_column(String,default=None)
     
     password_hash: Mapped[String] = mapped_column(String, default=None)
+    
+    created_at: Mapped[Date] = mapped_column(Date,default=datetime.now(timezone.utc))
+    updated_at: Mapped[Date] = mapped_column(Date, default=datetime.now(timezone.utc))
