@@ -18,24 +18,24 @@ def get_user(
 
 @router.post("")
 def create_user(
-    user: UserCreate,
+    request: UserCreate,
     db:Session = Depends(get_db),
 ):
-    user = user_service.create_user(db=db,data=user)
+    user = user_service.create_user(db=db,data=request)
     return JSONResponse({"detail":"User created successfully","data":user})
 
 @router.patch("")
 def update_user(
-    user: UserUpdate,
+    request: UserUpdate,
     db:Session = Depends(get_db),
 ):
-    user = user_service.update_user(db=db,data=user)
+    user = user_service.update_user(db=db,data=request)
     return JSONResponse({"detail":"User created successfully","data":user})
     
 @router.delete("")
 def delete_user(
-    user:UserDelete,
+    request: UserDelete,
     db:Session = Depends(get_db)
 ):
-    user = user_service.delete_user(db=db,data=user)
-    return JSONResponse({"detail":"User deleted successfully"})
+    user = user_service.delete_user(db=db,data=request)
+    return JSONResponse({"detail":"User deleted successfully","data":user})

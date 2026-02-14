@@ -1,9 +1,9 @@
 from typing import Any
 from fastapi import Depends, HTTPException, Request
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
-from src.common.security.utils.cookie import CookieManager
-from src.common.security.utils.jwt import JWTManager
-from src.common.config.config import settings
+from src.common.security.utils import CookieManager
+from src.common.security.utils import JWTManager
+from src.common.config import settings
 
 security = HTTPBearer(auto_error=False)
 

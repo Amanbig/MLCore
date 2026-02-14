@@ -16,7 +16,9 @@ dependencies = [
     "SQLAlchemy",
     "alembic",
     "pydantic[email]",
-    "pyjwt"
+    "pyjwt",
+    "bcrypt",
+    "passlib",
 ]
 
 [project.optional-dependencies]
