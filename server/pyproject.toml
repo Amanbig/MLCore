@@ -13,7 +13,9 @@ dependencies = [
     "pydantic>=2",
     "pydantic_settings",
     "SQLAlchemy-Utils",
-    "SQLAlchemy"
+    "SQLAlchemy",
+    "alembic",
+    "pydantic[email]"
 ]
 
 [project.optional-dependencies]

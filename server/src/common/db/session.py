@@ -1,7 +1,8 @@
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
+from src.common.config import config
 
-engine = create_engine("sqllite:///mlcore_db")
+engine = create_engine(config.settings.DATABASE_URL)
 
 SessionLocal = sessionmaker(
     autocommit=False,
