@@ -5,16 +5,16 @@ from sqlalchemy.orm import Mapped, mapped_column
 from src.common.db.base import Base
 from src.common.db.tables import Tables
 
+
 class File(Base):
     __tablename__ = Tables.FILES
-    
-    id:Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True),default=uuid.uuid4,primary_key=True)
-    name:Mapped[str] = mapped_column(String,default=None)
-    size:Mapped[str] = mapped_column(String,default=None)
-    location:Mapped[str] = mapped_column(String,default=None)
-    user_id:Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True), ForeignKey=(f"{Tables.USERS}.id"),
-        nullable=False
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), default=uuid.uuid4, primary_key=True)
+    name: Mapped[str] = mapped_column(String, default=None)
+    size: Mapped[str] = mapped_column(String, default=None)
+    location: Mapped[str] = mapped_column(String, default=None)
+    user_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey=(f"{Tables.USERS}.id"), nullable=False
     )
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=lambda: datetime.now(timezone.utc)
