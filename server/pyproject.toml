@@ -8,20 +8,37 @@ description = "This is the fastapi based ml server"
 requires-python = ">=3.10"
 version = "0.1.0"
 dependencies = [
+    # --- Backend / API ---
     "fastapi",
     "uvicorn[standard]",
     "pydantic>=2",
     "pydantic_settings",
-    "SQLAlchemy-Utils",
     "SQLAlchemy",
+    "SQLAlchemy-Utils",
     "alembic",
     "pydantic[email]",
+    "python-multipart",
+
+    # --- Auth / Security ---
     "pyjwt",
     "bcrypt",
     "passlib",
-    "ruff",
-    "python-multipart"
+
+    # --- ML / Data ---
+    "numpy",
+    "pandas",
+    "scikit-learn",
+    "scipy",
+    "joblib",
+
+    # --- Optional but common for ML APIs ---
+    "matplotlib",   # plotting (optional)
+    "seaborn",      # visualization (optional)
+
+    # --- Dev tools ---
+    "ruff"
 ]
+
 
 [project.optional-dependencies]
 dev = [
