@@ -13,7 +13,6 @@ class FileBase(BaseModel):
     created_at: datetime
     updated_at: datetime
 
-
 class FileCreate(BaseModel):
     name: str | None
     size: str | None

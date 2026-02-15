@@ -6,7 +6,7 @@ from src.common.db.base import Base
 from src.common.db.tables import Tables
 
 
-class File(Base):
+class Files(Base):
     __tablename__ = Tables.FILES
 
     id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), default=uuid.uuid4, primary_key=True)
