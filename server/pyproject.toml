@@ -19,7 +19,8 @@ dependencies = [
     "pyjwt",
     "bcrypt",
     "passlib",
-    "ruff"
+    "ruff",
+    "python-multipart"
 ]
 
 [project.optional-dependencies]

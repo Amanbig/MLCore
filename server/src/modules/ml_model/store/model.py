@@ -1,5 +1,5 @@
 import uuid
-from sqlalchemy import UUID, String
+from sqlalchemy import JSON, UUID, String
 from sqlalchemy.orm import Mapped, mapped_column
 from src.common.db.base import Base
 from src.common.db.tables import Tables
@@ -15,3 +15,11 @@ class MLModel(Base):
     version: Mapped = mapped_column(String, default=None)
 
     description: Mapped = mapped_column(String, default=None)
+    
+    location: Mapped = mapped_column(String, default=None)
+    
+    model_type:Mapped = mapped_column(String, default=None)
+    
+    inputs:Mapped = mapped_column(JSON, default=None)
+    
+    outputs:Mapped = mapped_column(JSON, default=None)
