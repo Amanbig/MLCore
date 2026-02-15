@@ -1,9 +1,11 @@
-from typing import Any, List, Union, Optional, Generic, TypeVar, Type
+from typing import Any, Generic, List, Optional, Type, TypeVar, Union
+
 from pydantic import BaseModel
-from sqlalchemy.orm import Session, joinedload
 from sqlalchemy.exc import SQLAlchemyError
+from sqlalchemy.orm import Session, joinedload
 
 T = TypeVar("T")
+
 
 class BaseRepository(Generic[T]):
     def __init__(self, model: Type[T]):
@@ -13,7 +15,7 @@ class BaseRepository(Generic[T]):
         self,
         db: Session,
         filters: Union[BaseModel, dict, None] = None,
-        load_relationships: Optional[List[str]] = None
+        load_relationships: Optional[List[str]] = None,
     ) -> List[T]:
 
         query = db.query(self.model)
@@ -58,9 +60,7 @@ class BaseRepository(Generic[T]):
 
     def update(self, db: Session, db_obj: T, obj_in: Any, commit: bool = True) -> T:
         updated_data = (
-            obj_in.model_dump(exclude_unset=True)
-            if hasattr(obj_in, "model_dump")
-            else obj_in
+            obj_in.model_dump(exclude_unset=True) if hasattr(obj_in, "model_dump") else obj_in
         )
 
         for field, value in updated_data.items():
@@ -80,10 +80,7 @@ class BaseRepository(Generic[T]):
         return db_obj
 
     def get_by_id(
-        self,
-        db: Session,
-        id: Any,
-        load_relationships: Optional[List[str]] = None
+        self, db: Session, id: Any, load_relationships: Optional[List[str]] = None
     ) -> Optional[T]:
 
         query = db.query(self.model)
@@ -93,7 +90,7 @@ class BaseRepository(Generic[T]):
                 if hasattr(self.model, rel):
                     query = query.options(joinedload(getattr(self.model, rel)))
 
-        return query.filter(getattr(self.model, id) == id).first()
+        return query.filter(getattr(self.model, "id") == id).first()
 
     def delete(self, db: Session, id: Any) -> Optional[T]:
         obj = self.get_by_id(db, id)

@@ -6,6 +6,7 @@ from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from src.common.config import settings
 from src.common.security.utils import CookieManager, JWTManager
 from src.common.security.utils.hash import PasswordHasher
+from src.modules.auth.schema import AuthToken
 
 security = HTTPBearer(auto_error=False)
 
@@ -39,6 +40,9 @@ class Security:
         return self.password_hasher.verify_password(plain_password, hashed_password)
 
     def generate_auth_token(self, data: Any):
+        # Convert Pydantic model to dict if needed
+        if hasattr(data, "model_dump"):
+            data = data.model_dump(mode="json")  # mode='json' converts UUIDs to strings
         token = self.jwt_manager.generate_token(data)
         return token
 
@@ -69,4 +73,5 @@ class Security:
         if not payload:
             raise HTTPException(status_code=401, detail="Missing or invalid token")
 
-        return payload
+        # Convert the payload dict to AuthToken object
+        return AuthToken(**payload)

@@ -29,3 +29,12 @@ class AuthToken(BaseModel):
     email:EmailStr | None
     phone:str | None
     username:str | None
+    
+class ProfileResponse(BaseModel):
+    id: UUID
+    email: EmailStr | None
+    phone: str | None
+    username: str | None
+    
+class LogoutResponse(BaseModel):
+    detail: str

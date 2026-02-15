@@ -8,6 +8,8 @@ from src.modules.auth.schema import (
     AuthToken,
     LoginRequest,
     LoginResponse,
+    LogoutResponse,
+    ProfileResponse,
     SignupRequest,
     SignupResponse,
 )
@@ -91,8 +93,16 @@ class AuthService:
             email=user.email, phone=user.phone, username=user.username, token=token
         )
 
-    def logout(self, response: Response):
+    def logout(self, response: Response) -> LogoutResponse:
         self.security_service.cookie_manager.clear_auth_cookie(response)
+        return LogoutResponse(detail="Logout is successful")
 
-    def getProfile(self, id: UUID, db: Session):
-        self.user_service.get_by_id(db=db, id=id)
+    def getProfile(self, id: UUID, db: Session) -> ProfileResponse:
+        user =  self.user_service.get_by_id(db=db, id=id)
+        
+        return ProfileResponse(
+            id=user.id,
+            email=user.email,
+            phone=user.phone,
+            username=user.username
+        )
