@@ -25,3 +25,5 @@ class MLModel(Base):
     outputs:Mapped = mapped_column(JSON, default=None)
     
     accuracy:Mapped = mapped_column(Float,default=0.0)
+    
+    error:Mapped = mapped_column(Float, default=0.0)
