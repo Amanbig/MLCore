@@ -1,5 +1,7 @@
 from uuid import UUID
+from fastapi import File
 from pydantic import BaseModel
+from starlette.datastructures import UploadFile
 
 class MLModelBase(BaseModel):
     id: UUID
@@ -22,6 +24,7 @@ class CreateMLModelRequest(BaseModel):
     outputs: str
     accuracy: float
     error: float
+    file:UploadFile = File(...)
     
 class CreateMLModelResponse(MLModelBase):
     detail: str
