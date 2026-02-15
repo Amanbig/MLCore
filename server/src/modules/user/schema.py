@@ -19,6 +19,7 @@ class UserCreate(BaseModel):
     password: str
 
 class UserCreateResponse(BaseModel):
+    id: UUID
     username :Optional[str]
     email :Optional[EmailStr]
     phone: Optional[str]

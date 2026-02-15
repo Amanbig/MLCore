@@ -1,5 +1,6 @@
 from typing import Dict, Sequence
 
+from uuid import UUID
 from sqlalchemy.orm import Session
 
 from src.common.security import Security
@@ -52,5 +53,5 @@ class UserService:
     def delete_user(self, db: Session, data: UserDelete) -> UserDeleteResponse:
         return self.repo.delete(db, data.id)
 
-    def get_by_id(self, db: Session, data: User) -> User:
-        return self.repo.get_by_id(db, data.id)
+    def get_by_id(self, db: Session , id:UUID) -> User:
+        return self.repo.get_by_id(db, id)

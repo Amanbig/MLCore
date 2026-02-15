@@ -1,4 +1,6 @@
-from fastapi import HTTPException
+from uuid import UUID
+
+from fastapi import HTTPException, Response
 from sqlalchemy.orm import Session
 
 from src.common.security import Security
@@ -18,7 +20,7 @@ class AuthService:
         self.user_service = UserService()
         self.security_service = Security()
 
-    def signup(self, request: SignupRequest, db: Session) -> SignupResponse:
+    def signup(self, request: SignupRequest, response: Response, db: Session) -> SignupResponse:
         # Check if email exists
         existing_user = self.user_service.get_user(db=db, filters={"email": request.email})
         if existing_user:
@@ -42,15 +44,18 @@ class AuthService:
 
         # Generate token
         token = self.security_service.generate_auth_token(
-            data=AuthToken(email=user.email, phone=user.phone, username=user.username)
+            data=AuthToken(id=user.id, email=user.email, phone=user.phone, username=user.username)
         )
+
+        # Set the token as a cookie for browser requests
+        self.security_service.cookie_manager.set_cookie(response, token)
 
         # Explicitly construct SignupResponse
         return SignupResponse(
             username=user.username, email=user.email, phone=user.phone, token=token
         )
 
-    def login(self, request: LoginRequest, db: Session) -> LoginResponse:
+    def login(self, request: LoginRequest, response: Response, db: Session) -> LoginResponse:
         # Build filters based on provided fields
         filters = {}
         if request.email:
@@ -75,10 +80,19 @@ class AuthService:
 
         # Generate token
         token = self.security_service.generate_auth_token(
-            data=AuthToken(email=user.email, phone=user.phone, username=user.username)
+            data=AuthToken(id=user.id, email=user.email, phone=user.phone, username=user.username)
         )
+
+        # Set the token as a cookie for browser requests
+        self.security_service.cookie_manager.set_cookie(response, token)
 
         # Return LoginResponse with explicit fields
         return LoginResponse(
             email=user.email, phone=user.phone, username=user.username, token=token
         )
+
+    def logout(self, response: Response):
+        self.security_service.cookie_manager.clear_auth_cookie(response)
+
+    def getProfile(self, id: UUID, db: Session):
+        self.user_service.get_by_id(db=db, id=id)
