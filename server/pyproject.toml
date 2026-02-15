@@ -19,6 +19,7 @@ dependencies = [
     "pyjwt",
     "bcrypt",
     "passlib",
+    "ruff"
 ]
 
 [project.optional-dependencies]

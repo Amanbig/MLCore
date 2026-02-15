@@ -8,6 +8,7 @@ app = FastAPI(redirect_slashes=True)
 app.include_router(auth_router)
 app.include_router(user_router)
 
+
 @app.get("/health")
 def health():
     return JSONResponse("System is healty")

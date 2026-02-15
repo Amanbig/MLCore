@@ -98,11 +98,8 @@ class AuthService:
         return LogoutResponse(detail="Logout is successful")
 
     def getProfile(self, id: UUID, db: Session) -> ProfileResponse:
-        user =  self.user_service.get_by_id(db=db, id=id)
-        
+        user = self.user_service.get_by_id(db=db, id=id)
+
         return ProfileResponse(
-            id=user.id,
-            email=user.email,
-            phone=user.phone,
-            username=user.username
+            id=user.id, email=user.email, phone=user.phone, username=user.username
         )
