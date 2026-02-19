@@ -15,11 +15,10 @@ dataset_service = DatasetService()
 @router.post("/dataset")
 def create_dataset(
     data: DatasetRequest,
-    user_id: int,
     db: Session = Depends(get_db),
     token_payload: AuthToken = Depends(dataset_service.auth_service.verify_token),
 ):
-    return dataset_service.create_dataset(db=db, data=data)
+    return dataset_service.create_dataset(db=db, data=data, user_id=token_payload.id)
 
 
 @router.get("/dataset/{dataset_id}")
@@ -36,7 +35,7 @@ def get_datasets(
     db: Session = Depends(get_db),
     token_payload: AuthToken = Depends(dataset_service.auth_service.verify_token),
 ):
-    return dataset_service.get_datasets(db=db)
+    return dataset_service.get_datasets(db=db, user_id=token_payload.id)
 
 
 @router.put("/dataset/{dataset_id}")
@@ -46,7 +45,9 @@ def update_dataset(
     db: Session = Depends(get_db),
     token_payload: AuthToken = Depends(dataset_service.auth_service.verify_token),
 ):
-    return dataset_service.update_dataset(db=db, dataset_id=dataset_id, data=data)
+    return dataset_service.update_dataset(
+        db=db, dataset_id=dataset_id, data=data, user_id=token_payload.id
+    )
 
 
 @router.delete("/dataset/{dataset_id}")
@@ -55,4 +56,4 @@ def delete_dataset(
     db: Session = Depends(get_db),
     token_payload: AuthToken = Depends(dataset_service.auth_service.verify_token),
 ):
-    return dataset_service.delete_dataset(db=db, dataset_id=dataset_id)
+    return dataset_service.delete_dataset(db=db, dataset_id=dataset_id, user_id=token_payload.id)
