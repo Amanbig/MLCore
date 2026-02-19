@@ -1,5 +1,6 @@
 from datetime import datetime
 from uuid import UUID
+
 from fastapi import File, UploadFile
 from pydantic import BaseModel
 
@@ -10,7 +11,7 @@ class FileBase(BaseModel):
     size: str
     location: str
     file_type: str
-    user_id: str
+    user_id: UUID
     created_at: datetime
     updated_at: datetime
 

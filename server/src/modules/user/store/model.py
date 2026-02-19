@@ -1,7 +1,10 @@
-from datetime import datetime, timezone
 import uuid
-from sqlalchemy import UUID, DateTime, String
+from datetime import datetime, timezone
+
+from sqlalchemy import DateTime, String
 from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy.types import Uuid
+
 from src.common.db.base import Base
 from src.common.db.tables import Tables
 
@@ -9,7 +12,7 @@ from src.common.db.tables import Tables
 class User(Base):
     __tablename__ = Tables.USERS
 
-    id: Mapped[UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, default=uuid.uuid4)
     username: Mapped[String] = mapped_column(String, default=None)
     email: Mapped[String] = mapped_column(String, default=None)
     phone: Mapped[String] = mapped_column(String, default=None)

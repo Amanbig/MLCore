@@ -1,5 +1,6 @@
 from datetime import datetime, timedelta, timezone
 from typing import Any, Dict, Optional
+
 import jwt
 
 
@@ -22,7 +23,7 @@ class JWTManager:
 
     def verify_token(self, token: str) -> Optional[Dict]:
         try:
-            decode = jwt.decode(token, self.secret, algorithms=self.algorithm)
+            decode = jwt.decode(token, self.secret, algorithms=[self.algorithm])
             return decode
         except (jwt.ExpiredSignatureError, jwt.InvalidTokenError) as e:
             print("Invalid or expired token", e)

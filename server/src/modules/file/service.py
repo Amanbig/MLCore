@@ -1,8 +1,11 @@
 import shutil
+from pathlib import Path
 from typing import Sequence
 from uuid import UUID
+
 from fastapi import HTTPException
 from sqlalchemy.orm import Session
+
 from src.modules.file.schema import (
     FileBase,
     FileCreate,
@@ -11,7 +14,6 @@ from src.modules.file.schema import (
     FileDeleteResponse,
 )
 from src.modules.file.store.repository import FileRepository
-from pathlib import Path
 
 
 class FileService:
@@ -20,7 +22,7 @@ class FileService:
         self.dir = dir
 
     def create_file(self, db: Session, data: FileCreate) -> FileCreateResponse:
-        with open(f"{dir}/{data.file.filename}", "wb") as buffer:
+        with open(f"{self.dir}/{data.file.filename}", "wb") as buffer:
             shutil.copyfileobj(data.file.file, buffer)
 
         files = self.repo.create(
@@ -28,7 +30,7 @@ class FileService:
             obj_in=FileCreate(
                 name=data.file.filename,
                 size=str(data.file.size),
-                location=f"{dir}/{data.file.filename}",
+                location=f"{self.dir}/{data.file.filename}",
                 user_id=data.user_id,
                 file_type=data.file.filename.split(".")[-1],
             ),

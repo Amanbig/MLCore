@@ -1,4 +1,8 @@
+from typing import List
+from uuid import UUID
+
 from sqlalchemy.orm import Session
+
 from src.modules.file import FileService
 from src.modules.ml_model.schema import CreateMLModelRequest, CreateMLModelResponse
 from src.modules.ml_model.store import MLModelRepository
@@ -15,16 +19,17 @@ class MLModelService:
         file = self.file_service.create_file(db=db, **data.model_dump())
         self.repo.create(db=db, obj_in=data)
 
-    def get_model(self, db: Session, model_id: int) -> CreateMLModelResponse:
-        return self.repo.get(db=db, id=model_id)
+    def get_model(self, db: Session, model_id: UUID) -> CreateMLModelResponse:
+        return self.repo.get_by_id(db=db, id=model_id)
 
     def get_models(self, db: Session) -> List[CreateMLModelResponse]:
-        return self.repo.get_all(db=db)
+        return self.repo.get(db=db)
 
     def update_model(
-        self, db: Session, model_id: int, data: CreateMLModelRequest
+        self, db: Session, model_id: UUID, data: CreateMLModelRequest
     ) -> CreateMLModelResponse:
-        return self.repo.update(db=db, id=model_id, obj_in=data)
+        model = self.repo.get_by_id(db=db, id=model_id)
+        return self.repo.update(db=db, db_obj=model, obj_in=data)
 
-    def delete_model(self, db: Session, model_id: int) -> CreateMLModelResponse:
+    def delete_model(self, db: Session, model_id: UUID) -> CreateMLModelResponse:
         return self.repo.delete(db=db, id=model_id)

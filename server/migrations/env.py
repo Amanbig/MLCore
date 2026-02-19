@@ -1,13 +1,13 @@
 from logging.config import fileConfig
-from sqlalchemy import create_engine, pool
+
 from alembic import context
+from sqlalchemy import create_engine, pool
 
 # Import your app settings and Base
-from src.common.config import config as app_config
+from src.common.config import settings
 from src.common.db.base import Base
 
 # Import all models so metadata is populated
-from src.modules.user.store import UserModel  # add other models here
 
 # Alembic Config object
 config = context.config
@@ -20,7 +20,7 @@ if config.config_file_name is not None:
 target_metadata = Base.metadata
 
 # Get DB URL from settings
-DATABASE_URL = app_config.settings.DATABASE_URL
+DATABASE_URL = settings.DATABASE_URL
 
 
 # -----------------------------
