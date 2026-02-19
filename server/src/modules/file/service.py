@@ -30,6 +30,7 @@ class FileService:
                 size=str(data.file.size),
                 location=f"{dir}/{data.file.filename}",
                 user_id=data.user_id,
+                file_type=data.file.filename.split(".")[-1],
             ),
         )
 

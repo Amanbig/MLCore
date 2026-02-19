@@ -9,6 +9,7 @@ class FileBase(BaseModel):
     name: str
     size: str
     location: str
+    file_type: str
     user_id: str
     created_at: datetime
     updated_at: datetime
@@ -18,6 +19,7 @@ class FileCreate(BaseModel):
     name: str | None
     size: str | None
     location: str
+    file_type: str
     user_id: UUID
     file: UploadFile = File(...)
 

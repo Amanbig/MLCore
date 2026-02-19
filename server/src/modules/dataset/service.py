@@ -6,6 +6,8 @@ from src.modules.file.service import FileService
 from src.modules.auth.service import AuthService
 from src.modules.auth.schema import AuthToken
 from uuid import UUID
+import pandas as pd
+import numpy as np
 
 
 class DatasetService:
@@ -18,7 +20,7 @@ class DatasetService:
         file = self.file_service.create_file(db=db, **data.model_dump())
         self.repo.create(
             db=db,
-            obj_in=DatasetRequest(**data.model_dump(), user_id=user_id, file_id=file.id),
+            obj_in=DatasetRequest(**data.model_dump(), user_id=user_id, file_id=file.id, metadata=self.get_dataset_params_details(db=db, file_id=file.id)),
         )
 
     def get_dataset(self, db: Session, dataset_id: int) -> DatasetResponse:
@@ -46,3 +48,51 @@ class DatasetService:
         file = self.file_service.get_file(db=db, file_id=dataset.file_id)
         self.file_service.delete_file(db=db, file_id=file.id)
         return self.repo.delete(db=db, id=dataset_id)
+
+    
+    def get_dataset_params_details(self, db: Session, file_id: UUID):
+        file = self.file_service.get_file(db=db, file_id=file_id)
+        if file.file_type == "csv":
+            dataset = pd.read_csv(file.location)
+        elif file.file_type == "xlsx":
+            dataset = pd.read_excel(file.location)
+
+        numeric_cols = dataset.select_dtypes(include="number").columns.tolist()
+        categorical_cols = dataset.select_dtypes(exclude="number").columns.tolist()
+
+        return {
+            "shape": {
+                "rows": dataset.shape[0],
+                "columns": dataset.shape[1],
+            },
+            # "columns": dataset.columns.tolist(),
+            "dtypes": dataset.dtypes.astype(str).to_dict(),
+            # "numeric_columns": numeric_cols,
+            # "categorical_columns": categorical_cols,
+            "missing_values": dataset.isnull().sum().to_dict(),
+            "missing_percentage": (
+                dataset.isnull().mean() * 100
+            ).round(2).to_dict(),
+            "statistics": dataset.describe().to_dict(),
+            "unique_values": dataset.nunique().to_dict(),
+            "preview": dataset.head(5).to_dict(orient="records"),
+        }
+
+
+    def get_dataset_columns(self, db: Session, dataset_id: int):
+        dataset = self.repo.get(db=db, id=dataset_id)
+        file = self.file_service.get_file(db=db, file_id=dataset.file_id)
+        if file.file_type == "csv":
+            dataset = pd.read_csv(file.location)
+        elif file.file_type == "xlsx":
+            dataset = pd.read_excel(file.location)
+        return dataset.columns.tolist()
+
+    def get_dataset_columns_details(self, db: Session, dataset_id: int):
+        dataset = self.repo.get(db=db, id=dataset_id)
+        file = self.file_service.get_file(db=db, file_id=dataset.file_id)
+        if file.file_type == "csv":
+            dataset = pd.read_csv(file.location)
+        elif file.file_type == "xlsx":
+            dataset = pd.read_excel(file.location)
+        return dataset.dtypes.astype(str).to_dict()

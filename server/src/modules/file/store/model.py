@@ -13,6 +13,7 @@ class Files(Base):
     name: Mapped[str] = mapped_column(String, default=None)
     size: Mapped[str] = mapped_column(String, default=None)
     location: Mapped[str] = mapped_column(String, default=None)
+    file_type: Mapped[str] = mapped_column(String, default=None)
     user_id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True), ForeignKey=(f"{Tables.USERS}.id"), nullable=False
     )
