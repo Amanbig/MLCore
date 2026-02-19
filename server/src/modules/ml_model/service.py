@@ -12,4 +12,16 @@ class MLModelService:
         
     def create_model(self,db:Session, data:CreateMLModelRequest) ->CreateMLModelResponse:
         file = self.file_service.create_file(db=db,**data.model_dump())
-        self.repo.create(db=db,obj_in=)
+        self.repo.create(db=db,obj_in=data)
+
+    def get_model(self,db:Session, model_id:int) ->CreateMLModelResponse:
+        return self.repo.get(db=db,id=model_id)
+    
+    def get_models(self,db:Session) ->List[CreateMLModelResponse]:
+        return self.repo.get_all(db=db)
+
+    def update_model(self,db:Session, model_id:int, data:CreateMLModelRequest) ->CreateMLModelResponse:
+        return self.repo.update(db=db,id=model_id,obj_in=data)
+
+    def delete_model(self,db:Session, model_id:int) ->CreateMLModelResponse:
+        return self.repo.delete(db=db,id=model_id)
