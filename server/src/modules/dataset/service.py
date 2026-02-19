@@ -105,3 +105,12 @@ class DatasetService:
         elif file.file_type == "xlsx":
             dataset = pd.read_excel(file.location)
         return dataset.hist().to_dict()
+
+    def correlation_matrix(self, db: Session, dataset_id: int):
+        dataset = self.repo.get(db=db, id=dataset_id)
+        file = self.file_service.get_file(db=db, file_id=dataset.file_id)
+        if file.file_type == "csv":
+            dataset = pd.read_csv(file.location)
+        elif file.file_type == "xlsx":
+            dataset = pd.read_excel(file.location)
+        return dataset.corr().to_dict()
