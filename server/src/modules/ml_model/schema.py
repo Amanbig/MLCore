@@ -3,9 +3,10 @@ from fastapi import File
 from pydantic import BaseModel
 from starlette.datastructures import UploadFile
 
+
 class MLModelBase(BaseModel):
     id: UUID
-    name:str
+    name: str
     version: str
     description: str
     model_type: str
@@ -13,10 +14,11 @@ class MLModelBase(BaseModel):
     outputs: str
     accuracy: float
     error: float
-    file_id:UUID
-    
+    file_id: UUID
+
+
 class CreateMLModelRequest(BaseModel):
-    name:str
+    name: str
     version: str
     description: str
     model_type: str
@@ -24,7 +26,8 @@ class CreateMLModelRequest(BaseModel):
     outputs: str
     accuracy: float
     error: float
-    file:UploadFile = File(...)
-    
+    file: UploadFile = File(...)
+
+
 class CreateMLModelResponse(MLModelBase):
     detail: str

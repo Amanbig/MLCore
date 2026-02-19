@@ -103,3 +103,6 @@ class AuthService:
         return ProfileResponse(
             id=user.id, email=user.email, phone=user.phone, username=user.username
         )
+
+    def verify_token(self, token: str) -> AuthToken:
+        return self.security_service.verify_auth_token(token)

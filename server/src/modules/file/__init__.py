@@ -1,5 +1,3 @@
 from src.modules.file.service import FileService
 
-__all__ = [
-    "FileService"
-]
+__all__ = ["FileService"]
