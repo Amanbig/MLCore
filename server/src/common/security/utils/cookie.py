@@ -1,9 +1,9 @@
-from typing import Dict
+
 from fastapi import Response
 
 
 class CookieManager:
-    def __init__(self, payload: Dict):
+    def __init__(self, payload: dict):
         self.payload = payload
 
     def set_cookie(self, response: Response, token: str):

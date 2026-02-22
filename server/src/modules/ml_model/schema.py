@@ -39,10 +39,17 @@ class TrainModelRequest(BaseModel):
     target_column: str
     features: list[str] | None = None
     hyperparameters: dict = {}
+    name: str | None = None  # custom model name; defaults to "<algo> Model"
+    description: str | None = None  # custom description; defaults to auto-generated
 
 
 class TrainModelResponse(MLModelBase):
     detail: str
+
+
+class UpdateModelMetaRequest(BaseModel):
+    name: str
+    description: str | None = None
 
 
 class PredictRequest(BaseModel):

@@ -1,9 +1,9 @@
-from src.common.logging.logger import log_execution
 from uuid import UUID
 
 from fastapi import HTTPException, Response
 from sqlalchemy.orm import Session
 
+from src.common.logging.logger import log_execution
 from src.common.security import Security
 from src.modules.auth.schema import (
     AuthToken,
@@ -14,8 +14,8 @@ from src.modules.auth.schema import (
     SignupRequest,
     SignupResponse,
 )
-from src.modules.user.service import UserService
 from src.modules.user.schema import UserCreate
+from src.modules.user.service import UserService
 
 
 class AuthService:

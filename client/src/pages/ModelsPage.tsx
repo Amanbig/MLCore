@@ -1,1431 +1,1563 @@
 import { useState, useEffect, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import {
-	Dialog,
-	DialogContent,
-	DialogHeader,
-	DialogTitle,
-	DialogDescription,
-	DialogFooter,
-	DialogTrigger,
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+  DialogTrigger,
 } from "@/components/ui/dialog";
 import {
-	Sheet,
-	SheetContent,
-	SheetHeader,
-	SheetTitle,
-	SheetDescription,
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetDescription,
 } from "@/components/ui/sheet";
 import {
-	Card,
-	CardContent,
-	CardHeader,
-	CardTitle,
-	CardDescription,
-	CardFooter,
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+  CardFooter,
 } from "@/components/ui/card";
 import {
-	DropdownMenu,
-	DropdownMenuContent,
-	DropdownMenuItem,
-	DropdownMenuSeparator,
-	DropdownMenuTrigger,
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import {
-	Select,
-	SelectContent,
-	SelectGroup,
-	SelectItem,
-	SelectLabel,
-	SelectTrigger,
-	SelectValue,
+  Select,
+  SelectContent,
+  SelectGroup,
+  SelectItem,
+  SelectLabel,
+  SelectTrigger,
+  SelectValue,
 } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { Progress } from "@/components/ui/progress";
 import {
-	Tooltip,
-	TooltipContent,
-	TooltipProvider,
-	TooltipTrigger,
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import {
-	Library,
-	MoreVertical,
-	Plus,
-	Trash2,
-	RefreshCw,
-	Loader2,
-	FlaskConical,
-	GitBranch,
-	TrendingUp,
-	TrendingDown,
-	Info,
-	Download,
-	TestTube2,
-	CheckCircle2,
+  Library,
+  MoreVertical,
+  Plus,
+  Trash2,
+  RefreshCw,
+  Loader2,
+  FlaskConical,
+  GitBranch,
+  TrendingUp,
+  TrendingDown,
+  Info,
+  Download,
+  TestTube2,
+  CheckCircle2,
+  Pencil,
 } from "lucide-react";
 import { api } from "@/lib/api";
 import { toast } from "sonner";
 
 // ── Types ──────────────────────────────────────────────────────────────────
 interface Dataset {
-	id: string;
-	name: string;
+  id: string;
+  name: string;
 }
 
 interface MLModel {
-	id: string;
-	name: string;
-	version: string;
-	model_type: string;
-	accuracy: number;
-	error: number;
-	description: string;
-	inputs: string; // stored as Python list repr e.g. "['col1','col2']"
-	outputs: string; // target column name
-	parent_id: string | null;
-	created_at?: string;
+  id: string;
+  name: string;
+  version: string;
+  model_type: string;
+  accuracy: number;
+  error: number;
+  description: string;
+  inputs: string; // stored as Python list repr e.g. "['col1','col2']"
+  outputs: string; // target column name
+  parent_id: string | null;
+  created_at?: string;
 }
 
 interface HyperparamDef {
-	name: string;
-	type: "int" | "float" | "bool" | "select" | "str";
-	default: string | number | boolean | null;
-	description: string;
-	min?: number;
-	max?: number;
-	options?: string[];
-	nullable?: boolean;
+  name: string;
+  type: "int" | "float" | "bool" | "select" | "str";
+  default: string | number | boolean | null;
+  description: string;
+  min?: number;
+  max?: number;
+  options?: string[];
+  nullable?: boolean;
 }
 
 // ── Algorithm lists ────────────────────────────────────────────────────────
 const CLASSIFIER_ALGOS = [
-	{ value: "random_forest_classifier", label: "Random Forest Classifier" },
-	{ value: "logistic_regression", label: "Logistic Regression" },
-	{ value: "svm", label: "Support Vector Machine (SVC)" },
-	{ value: "decision_tree", label: "Decision Tree Classifier" },
-	{ value: "gradient_boosting", label: "Gradient Boosting Classifier" },
-	{ value: "knn", label: "K-Nearest Neighbors" },
-	{ value: "naive_bayes", label: "Naive Bayes (Gaussian)" },
+  { value: "random_forest_classifier", label: "Random Forest Classifier" },
+  { value: "logistic_regression", label: "Logistic Regression" },
+  { value: "svm", label: "Support Vector Machine (SVC)" },
+  { value: "decision_tree", label: "Decision Tree Classifier" },
+  { value: "gradient_boosting", label: "Gradient Boosting Classifier" },
+  { value: "knn", label: "K-Nearest Neighbors" },
+  { value: "naive_bayes", label: "Naive Bayes (Gaussian)" },
 ];
 
 const REGRESSOR_ALGOS = [
-	{ value: "linear_regression", label: "Linear Regression" },
-	{ value: "random_forest_regressor", label: "Random Forest Regressor" },
-	{ value: "ridge", label: "Ridge Regression" },
-	{ value: "lasso", label: "Lasso Regression" },
-	{ value: "svr", label: "Support Vector Regressor (SVR)" },
-	{ value: "decision_tree_regressor", label: "Decision Tree Regressor" },
-	{
-		value: "gradient_boosting_regressor",
-		label: "Gradient Boosting Regressor",
-	},
+  { value: "linear_regression", label: "Linear Regression" },
+  { value: "random_forest_regressor", label: "Random Forest Regressor" },
+  { value: "ridge", label: "Ridge Regression" },
+  { value: "lasso", label: "Lasso Regression" },
+  { value: "svr", label: "Support Vector Regressor (SVR)" },
+  { value: "decision_tree_regressor", label: "Decision Tree Regressor" },
+  {
+    value: "gradient_boosting_regressor",
+    label: "Gradient Boosting Regressor",
+  },
 ];
 
 const EMPTY_FORM = {
-	dataset_id: "",
-	model_algorithm: "",
-	target_column: "",
-	features: "",
+  dataset_id: "",
+  model_algorithm: "",
+  target_column: "",
+  features: "",
+  name: "",
+  description: "",
 };
 
 // ── HyperparamField: renders one param ────────────────────────────────────
 function HyperparamField({
-	def: d,
-	value,
-	onChange,
+  def: d,
+  value,
+  onChange,
 }: {
-	def: HyperparamDef;
-	value: any;
-	onChange: (v: any) => void;
+  def: HyperparamDef;
+  value: any;
+  onChange: (v: any) => void;
 }) {
-	const displayVal = value === undefined ? d.default : value;
+  const displayVal = value === undefined ? d.default : value;
 
-	const label = (
-		<div className="flex items-center gap-1.5">
-			<span className="text-sm font-medium font-mono">{d.name}</span>
-			<TooltipProvider delayDuration={200}>
-				<Tooltip>
-					<TooltipTrigger asChild>
-						<Info className="w-3.5 h-3.5 text-muted-foreground cursor-help" />
-					</TooltipTrigger>
-					<TooltipContent side="right" className="max-w-[220px] text-xs">
-						{d.description}
-						{d.min !== undefined && d.max !== undefined && (
-							<span className="block text-muted-foreground mt-1">
-								Range: {d.min} – {d.max}
-							</span>
-						)}
-					</TooltipContent>
-				</Tooltip>
-			</TooltipProvider>
-		</div>
-	);
+  const label = (
+    <div className="flex items-center gap-1.5">
+      <span className="text-sm font-medium font-mono">{d.name}</span>
+      <TooltipProvider delayDuration={200}>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Info className="w-3.5 h-3.5 text-muted-foreground cursor-help" />
+          </TooltipTrigger>
+          <TooltipContent side="right" className="max-w-[220px] text-xs">
+            {d.description}
+            {d.min !== undefined && d.max !== undefined && (
+              <span className="block text-muted-foreground mt-1">
+                Range: {d.min} – {d.max}
+              </span>
+            )}
+          </TooltipContent>
+        </Tooltip>
+      </TooltipProvider>
+    </div>
+  );
 
-	if (d.type === "bool") {
-		return (
-			<div className="flex items-center justify-between py-1">
-				{label}
-				<Switch checked={displayVal ?? false} onCheckedChange={onChange} />
-			</div>
-		);
-	}
+  if (d.type === "bool") {
+    return (
+      <div className="flex items-center justify-between py-1">
+        {label}
+        <Switch checked={displayVal ?? false} onCheckedChange={onChange} />
+      </div>
+    );
+  }
 
-	if (d.type === "select") {
-		return (
-			<div className="space-y-1">
-				{label}
-				<Select
-					value={String(displayVal ?? d.options?.[0] ?? "")}
-					onValueChange={(v) => onChange(v === "None" ? null : v)}
-				>
-					<SelectTrigger className="h-8 text-sm">
-						<SelectValue />
-					</SelectTrigger>
-					<SelectContent>
-						{d.options?.map((o) => (
-							<SelectItem key={o} value={o} className="text-sm">
-								{o}
-							</SelectItem>
-						))}
-					</SelectContent>
-				</Select>
-			</div>
-		);
-	}
+  if (d.type === "select") {
+    return (
+      <div className="space-y-1">
+        {label}
+        <Select
+          value={String(displayVal ?? d.options?.[0] ?? "")}
+          onValueChange={(v) => onChange(v === "None" ? null : v)}
+        >
+          <SelectTrigger className="h-8 text-sm">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            {d.options?.map((o) => (
+              <SelectItem key={o} value={o} className="text-sm">
+                {o}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+    );
+  }
 
-	if (d.type === "int" || d.type === "float") {
-		return (
-			<div className="space-y-1">
-				{label}
-				<Input
-					type="number"
-					className="h-8 text-sm"
-					step={d.type === "float" ? "any" : "1"}
-					min={d.min}
-					max={d.max}
-					value={displayVal ?? ""}
-					placeholder={
-						d.nullable ? "leave blank = None" : String(d.default ?? "")
-					}
-					onChange={(e) => {
-						const v = e.target.value;
-						if (v === "") {
-							onChange(null);
-							return;
-						}
-						onChange(d.type === "float" ? parseFloat(v) : parseInt(v, 10));
-					}}
-				/>
-			</div>
-		);
-	}
+  if (d.type === "int" || d.type === "float") {
+    return (
+      <div className="space-y-1">
+        {label}
+        <Input
+          type="number"
+          className="h-8 text-sm"
+          step={d.type === "float" ? "any" : "1"}
+          min={d.min}
+          max={d.max}
+          value={displayVal ?? ""}
+          placeholder={
+            d.nullable ? "leave blank = None" : String(d.default ?? "")
+          }
+          onChange={(e) => {
+            const v = e.target.value;
+            if (v === "") {
+              onChange(null);
+              return;
+            }
+            onChange(d.type === "float" ? parseFloat(v) : parseInt(v, 10));
+          }}
+        />
+      </div>
+    );
+  }
 
-	// str fallback
-	return (
-		<div className="space-y-1">
-			{label}
-			<Input
-				className="h-8 text-sm"
-				value={displayVal ?? ""}
-				onChange={(e) => onChange(e.target.value)}
-			/>
-		</div>
-	);
+  // str fallback
+  return (
+    <div className="space-y-1">
+      {label}
+      <Input
+        className="h-8 text-sm"
+        value={displayVal ?? ""}
+        onChange={(e) => onChange(e.target.value)}
+      />
+    </div>
+  );
 }
 
 // ── PredictInputs ──────────────────────────────────────────────────────────
 function PredictInputs({
-	inputs,
-	onChange,
+  inputs,
+  onChange,
 }: {
-	inputs: Record<string, string>;
-	onChange: (col: string, val: string) => void;
+  inputs: Record<string, string>;
+  onChange: (col: string, val: string) => void;
 }) {
-	const [filter, setFilter] = useState("");
-	const cols = Object.keys(inputs);
-	const filtered = filter
-		? cols.filter((c) => c.toLowerCase().includes(filter.toLowerCase()))
-		: cols;
+  const [filter, setFilter] = useState("");
+  const cols = Object.keys(inputs);
+  const filtered = filter
+    ? cols.filter((c) => c.toLowerCase().includes(filter.toLowerCase()))
+    : cols;
 
-	if (cols.length === 0)
-		return (
-			<p className="text-sm text-muted-foreground text-center py-6">
-				No feature columns found for this model.
-			</p>
-		);
+  if (cols.length === 0)
+    return (
+      <p className="text-sm text-muted-foreground text-center py-6">
+        No feature columns found for this model.
+      </p>
+    );
 
-	return (
-		<div className="py-2 space-y-3">
-			{/* Search — only shown when there are many features */}
-			{cols.length > 6 && (
-				<div className="relative">
-					<Input
-						className="h-8 text-sm pl-8"
-						placeholder={`Filter ${cols.length} features…`}
-						value={filter}
-						onChange={(e) => setFilter(e.target.value)}
-					/>
-					<svg
-						aria-hidden="true"
-						className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground"
-						fill="none"
-						stroke="currentColor"
-						viewBox="0 0 24 24"
-					>
-						<path
-							strokeLinecap="round"
-							strokeLinejoin="round"
-							strokeWidth={2}
-							d="M21 21l-4.35-4.35M17 11A6 6 0 1 1 5 11a6 6 0 0 1 12 0z"
-						/>
-					</svg>
-				</div>
-			)}
+  return (
+    <div className="py-2 space-y-3">
+      {/* Search — only shown when there are many features */}
+      {cols.length > 6 && (
+        <div className="relative">
+          <Input
+            className="h-8 text-sm pl-8"
+            placeholder={`Filter ${cols.length} features…`}
+            value={filter}
+            onChange={(e) => setFilter(e.target.value)}
+          />
+          <svg
+            aria-hidden="true"
+            className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M21 21l-4.35-4.35M17 11A6 6 0 1 1 5 11a6 6 0 0 1 12 0z"
+            />
+          </svg>
+        </div>
+      )}
 
-			{/* Fill-all helpers */}
-			<div className="flex items-center justify-between text-xs text-muted-foreground">
-				<span>
-					{filtered.length} of {cols.length} shown
-				</span>
-				<button
-					type="button"
-					className="text-muted-foreground hover:text-destructive"
-					onClick={() => {
-						for (const c of cols) onChange(c, "");
-					}}
-				>
-					Clear all
-				</button>
-			</div>
+      {/* Fill-all helpers */}
+      <div className="flex items-center justify-between text-xs text-muted-foreground">
+        <span>
+          {filtered.length} of {cols.length} shown
+        </span>
+        <button
+          type="button"
+          className="text-muted-foreground hover:text-destructive"
+          onClick={() => {
+            for (const c of cols) onChange(c, "");
+          }}
+        >
+          Clear all
+        </button>
+      </div>
 
-			{/* Two-column grid */}
-			<div className="grid grid-cols-2 gap-x-4 gap-y-2.5">
-				{filtered.map((col) => (
-					<div key={col} className="space-y-1">
-						<Label
-							className="text-[11px] font-mono text-muted-foreground truncate block"
-							title={col}
-						>
-							{col}
-						</Label>
-						<Input
-							className="h-7 text-xs"
-							placeholder="value"
-							value={inputs[col]}
-							onChange={(e) => onChange(col, e.target.value)}
-						/>
-					</div>
-				))}
-			</div>
+      {/* Two-column grid */}
+      <div className="grid grid-cols-2 gap-x-4 gap-y-2.5">
+        {filtered.map((col) => (
+          <div key={col} className="space-y-1">
+            <Label
+              className="text-[11px] font-mono text-muted-foreground truncate block"
+              title={col}
+            >
+              {col}
+            </Label>
+            <Input
+              className="h-7 text-xs"
+              placeholder="value"
+              value={inputs[col]}
+              onChange={(e) => onChange(col, e.target.value)}
+            />
+          </div>
+        ))}
+      </div>
 
-			{filtered.length === 0 && (
-				<p className="text-xs text-muted-foreground text-center py-2">
-					No features match "{filter}"
-				</p>
-			)}
-		</div>
-	);
+      {filtered.length === 0 && (
+        <p className="text-xs text-muted-foreground text-center py-2">
+          No features match "{filter}"
+        </p>
+      )}
+    </div>
+  );
 }
 
 /** Parse the server's stored inputs string (Python list repr or JSON) into a string array. */
 function parseInputCols(inputs: string | undefined | null): string[] {
-	if (!inputs) return [];
-	try {
-		const parsed = JSON.parse(inputs);
-		if (Array.isArray(parsed)) return parsed.map(String);
-	} catch {}
-	// Python list repr: "['col1', 'col2']"
-	try {
-		const cleaned = inputs
-			.replace(/^\[/, "")
-			.replace(/\]$/, "")
-			.split(",")
-			.map((s) => s.trim().replace(/^['"]|['"]$/g, ""))
-			.filter(Boolean);
-		return cleaned;
-	} catch {}
-	return [];
+  if (!inputs) return [];
+  try {
+    const parsed = JSON.parse(inputs);
+    if (Array.isArray(parsed)) return parsed.map(String);
+  } catch {}
+  // Python list repr: "['col1', 'col2']"
+  try {
+    const cleaned = inputs
+      .replace(/^\[/, "")
+      .replace(/\]$/, "")
+      .split(",")
+      .map((s) => s.trim().replace(/^['"]|['"]$/g, ""))
+      .filter(Boolean);
+    return cleaned;
+  } catch {}
+  return [];
 }
 
 // ── Main page ──────────────────────────────────────────────────────────────
 export function ModelsPage() {
-	const [models, setModels] = useState<MLModel[]>([]);
-	const [datasets, setDatasets] = useState<Dataset[]>([]);
-	const [isLoading, setIsLoading] = useState(true);
+  const [models, setModels] = useState<MLModel[]>([]);
+  const [datasets, setDatasets] = useState<Dataset[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
 
-	// Train dialog
-	const [isTrainOpen, setIsTrainOpen] = useState(false);
-	const [isTraining, setIsTraining] = useState(false);
-	const [trainForm, setTrainForm] = useState(EMPTY_FORM);
-	const [trainHyperparams, setTrainHyperparams] = useState<Record<string, any>>(
-		{},
-	);
-	const [trainSchemas, setTrainSchemas] = useState<HyperparamDef[]>([]);
-	const [isLoadingTrainSchemas, setIsLoadingTrainSchemas] = useState(false);
+  // Train dialog
+  const [isTrainOpen, setIsTrainOpen] = useState(false);
+  const [isTraining, setIsTraining] = useState(false);
+  const [trainForm, setTrainForm] = useState(EMPTY_FORM);
+  const [trainHyperparams, setTrainHyperparams] = useState<Record<string, any>>(
+    {},
+  );
+  const [trainSchemas, setTrainSchemas] = useState<HyperparamDef[]>([]);
+  const [isLoadingTrainSchemas, setIsLoadingTrainSchemas] = useState(false);
 
-	// Retrain dialog
-	const [retrainModel, setRetrainModel] = useState<MLModel | null>(null);
-	const [isRetraining, setIsRetraining] = useState(false);
-	const [retrainForm, setRetrainForm] = useState(EMPTY_FORM);
-	const [retrainHyperparams, setRetrainHyperparams] = useState<
-		Record<string, any>
-	>({});
-	const [retrainSchemas, setRetrainSchemas] = useState<HyperparamDef[]>([]);
-	const [isLoadingRetrainSchemas, setIsLoadingRetrainSchemas] = useState(false);
+  // Retrain dialog
+  const [retrainModel, setRetrainModel] = useState<MLModel | null>(null);
+  const [isRetraining, setIsRetraining] = useState(false);
+  const [retrainForm, setRetrainForm] = useState(EMPTY_FORM);
+  const [retrainHyperparams, setRetrainHyperparams] = useState<
+    Record<string, any>
+  >({});
+  const [retrainSchemas, setRetrainSchemas] = useState<HyperparamDef[]>([]);
+  const [isLoadingRetrainSchemas, setIsLoadingRetrainSchemas] = useState(false);
 
-	// Lineage sheet
-	const [lineageModel, setLineageModel] = useState<MLModel | null>(null);
-	const [lineageVersions, setLineageVersions] = useState<MLModel[]>([]);
-	const [isLoadingLineage, setIsLoadingLineage] = useState(false);
+  // Lineage sheet
+  const [lineageModel, setLineageModel] = useState<MLModel | null>(null);
+  const [lineageVersions, setLineageVersions] = useState<MLModel[]>([]);
+  const [isLoadingLineage, setIsLoadingLineage] = useState(false);
 
-	// Delete confirm
-	const [deleteModel, setDeleteModel] = useState<MLModel | null>(null);
-	const [isDeleting, setIsDeleting] = useState(false);
+  // Delete confirm
+  const [deleteModel, setDeleteModel] = useState<MLModel | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
-	// Predict (test) dialog
-	const [predictModel, setPredictModel] = useState<MLModel | null>(null);
-	const [predictInputs, setPredictInputs] = useState<Record<string, string>>(
-		{},
-	);
-	const [isPredicting, setIsPredicting] = useState(false);
-	const [predictResult, setPredictResult] = useState<{
-		predictions: any[];
-		probabilities: { [cls: string]: number }[] | null;
-		target: string;
-	} | null>(null);
+  // Edit name/description
+  const [editModel, setEditModel] = useState<MLModel | null>(null);
+  const [editName, setEditName] = useState("");
+  const [editDescription, setEditDescription] = useState("");
+  const [isSavingEdit, setIsSavingEdit] = useState(false);
 
-	// Download state (per-model loading indicator)
-	const [downloadingId, setDownloadingId] = useState<string | null>(null);
+  // Predict (test) dialog
+  const [predictModel, setPredictModel] = useState<MLModel | null>(null);
+  const [predictInputs, setPredictInputs] = useState<Record<string, string>>(
+    {},
+  );
+  const [isPredicting, setIsPredicting] = useState(false);
+  const [predictResult, setPredictResult] = useState<{
+    predictions: any[];
+    probabilities: { [cls: string]: number }[] | null;
+    target: string;
+  } | null>(null);
 
-	// ── fetch helpers ────────────────────────────────────────────────────
-	const fetchData = async () => {
-		try {
-			setIsLoading(true);
-			const [modelsRes, datasetsRes] = await Promise.all([
-				api.get("/ml_models"),
-				api.get("/datasets"),
-			]);
-			setModels(modelsRes.data || []);
-			setDatasets(datasetsRes.data || []);
-		} catch (error: any) {
-			if (error.response?.status !== 401) toast.error("Failed to load models");
-		} finally {
-			setIsLoading(false);
-		}
-	};
+  // Download state (per-model loading indicator)
+  const [downloadingId, setDownloadingId] = useState<string | null>(null);
 
-	useEffect(() => {
-		fetchData();
-	}, []);
+  // ── fetch helpers ────────────────────────────────────────────────────
+  const fetchData = async () => {
+    try {
+      setIsLoading(true);
+      const [modelsRes, datasetsRes] = await Promise.all([
+        api.get("/ml_models"),
+        api.get("/datasets"),
+      ]);
+      setModels(modelsRes.data || []);
+      setDatasets(datasetsRes.data || []);
+    } catch (error: any) {
+      if (error.response?.status !== 401) toast.error("Failed to load models");
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
-	const fetchSchemas = useCallback(
-		async (
-			algorithm: string,
-			setSchemas: (s: HyperparamDef[]) => void,
-			setHyperparams: (h: Record<string, any>) => void,
-			setLoading: (v: boolean) => void,
-		) => {
-			if (!algorithm) {
-				setSchemas([]);
-				return;
-			}
-			try {
-				setLoading(true);
-				const res = await api.get(`/ml_model/hyperparameters/${algorithm}`);
-				const schemas: HyperparamDef[] = res.data.hyperparameters || [];
-				setSchemas(schemas);
-				// Pre-fill defaults
-				const defaults: Record<string, any> = {};
-				schemas.forEach((s) => {
-					defaults[s.name] = s.default;
-				});
-				setHyperparams(defaults);
-			} catch {
-				setSchemas([]);
-			} finally {
-				setLoading(false);
-			}
-		},
-		[],
-	);
+  useEffect(() => {
+    fetchData();
+  }, []);
 
-	// Watch algorithm changes for train
-	useEffect(() => {
-		fetchSchemas(
-			trainForm.model_algorithm,
-			setTrainSchemas,
-			setTrainHyperparams,
-			setIsLoadingTrainSchemas,
-		);
-	}, [trainForm.model_algorithm]);
+  const fetchSchemas = useCallback(
+    async (
+      algorithm: string,
+      setSchemas: (s: HyperparamDef[]) => void,
+      setHyperparams: (h: Record<string, any>) => void,
+      setLoading: (v: boolean) => void,
+    ) => {
+      if (!algorithm) {
+        setSchemas([]);
+        return;
+      }
+      try {
+        setLoading(true);
+        const res = await api.get(`/ml_model/hyperparameters/${algorithm}`);
+        const schemas: HyperparamDef[] = res.data.hyperparameters || [];
+        setSchemas(schemas);
+        // Pre-fill defaults
+        const defaults: Record<string, any> = {};
+        schemas.forEach((s) => {
+          defaults[s.name] = s.default;
+        });
+        setHyperparams(defaults);
+      } catch {
+        setSchemas([]);
+      } finally {
+        setLoading(false);
+      }
+    },
+    [],
+  );
 
-	// Watch algorithm changes for retrain
-	useEffect(() => {
-		fetchSchemas(
-			retrainForm.model_algorithm,
-			setRetrainSchemas,
-			setRetrainHyperparams,
-			setIsLoadingRetrainSchemas,
-		);
-	}, [retrainForm.model_algorithm]);
+  // Watch algorithm changes for train
+  useEffect(() => {
+    fetchSchemas(
+      trainForm.model_algorithm,
+      setTrainSchemas,
+      setTrainHyperparams,
+      setIsLoadingTrainSchemas,
+    );
+  }, [trainForm.model_algorithm]);
 
-	// ── payload builder ──────────────────────────────────────────────────
-	const buildPayload = (
-		form: typeof EMPTY_FORM,
-		hyperparams: Record<string, any>,
-		schemas: HyperparamDef[],
-	) => {
-		const schemaMap = Object.fromEntries(schemas.map((s) => [s.name, s]));
-		const cleanParams: Record<string, any> = {};
+  // Watch algorithm changes for retrain
+  useEffect(() => {
+    fetchSchemas(
+      retrainForm.model_algorithm,
+      setRetrainSchemas,
+      setRetrainHyperparams,
+      setIsLoadingRetrainSchemas,
+    );
+  }, [retrainForm.model_algorithm]);
 
-		Object.entries(hyperparams).forEach(([k, v]) => {
-			// Explicit null / "None" string → omit (let sklearn use its default)
-			if (v === null || v === undefined || v === "None" || v === "") return;
+  // ── payload builder ──────────────────────────────────────────────────
+  const buildPayload = (
+    form: typeof EMPTY_FORM,
+    hyperparams: Record<string, any>,
+    schemas: HyperparamDef[],
+  ) => {
+    const schemaMap = Object.fromEntries(schemas.map((s) => [s.name, s]));
+    const cleanParams: Record<string, any> = {};
 
-			const schema = schemaMap[k];
-			if (schema) {
-				if (schema.type === "int") {
-					const n = parseInt(v, 10);
-					if (!Number.isNaN(n)) cleanParams[k] = n;
-					return;
-				}
-				if (schema.type === "float") {
-					const n = parseFloat(v);
-					if (!Number.isNaN(n)) cleanParams[k] = n;
-					return;
-				}
-				if (schema.type === "bool") {
-					cleanParams[k] = v === true || v === "true";
-					return;
-				}
-				// select — try to cast to number if it looks numeric, else keep as string
-				if (schema.type === "select") {
-					if (v === "None") return; // already handled above
-					const n = Number(v);
-					cleanParams[k] = !Number.isNaN(n) && v !== "" ? n : v;
-					return;
-				}
-			}
-			// fallback: keep as-is
-			cleanParams[k] = v;
-		});
+    Object.entries(hyperparams).forEach(([k, v]) => {
+      // Explicit null / "None" string → omit (let sklearn use its default)
+      if (v === null || v === undefined || v === "None" || v === "") return;
 
-		return {
-			dataset_id: form.dataset_id,
-			model_algorithm: form.model_algorithm,
-			target_column: form.target_column,
-			features: form.features
-				? form.features
-						.split(",")
-						.map((f) => f.trim())
-						.filter(Boolean)
-				: null,
-			hyperparameters: cleanParams,
-		};
-	};
+      const schema = schemaMap[k];
+      if (schema) {
+        if (schema.type === "int") {
+          const n = parseInt(v, 10);
+          if (!Number.isNaN(n)) cleanParams[k] = n;
+          return;
+        }
+        if (schema.type === "float") {
+          const n = parseFloat(v);
+          if (!Number.isNaN(n)) cleanParams[k] = n;
+          return;
+        }
+        if (schema.type === "bool") {
+          cleanParams[k] = v === true || v === "true";
+          return;
+        }
+        // select — try to cast to number if it looks numeric, else keep as string
+        if (schema.type === "select") {
+          if (v === "None") return; // already handled above
+          const n = Number(v);
+          cleanParams[k] = !Number.isNaN(n) && v !== "" ? n : v;
+          return;
+        }
+      }
+      // fallback: keep as-is
+      cleanParams[k] = v;
+    });
 
-	// ── handlers ─────────────────────────────────────────────────────────
-	const handleTrain = async () => {
-		if (
-			!trainForm.dataset_id ||
-			!trainForm.model_algorithm ||
-			!trainForm.target_column
-		) {
-			toast.error("Please fill in all required fields");
-			return;
-		}
-		try {
-			setIsTraining(true);
-			await api.post(
-				"/ml_model/train",
-				buildPayload(trainForm, trainHyperparams, trainSchemas),
-			);
-			toast.success("Model trained successfully!");
-			setIsTrainOpen(false);
-			setTrainForm(EMPTY_FORM);
-			setTrainHyperparams({});
-			await fetchData();
-		} catch (error: any) {
-			toast.error(error.response?.data?.detail || "Training failed");
-		} finally {
-			setIsTraining(false);
-		}
-	};
+    return {
+      dataset_id: form.dataset_id,
+      model_algorithm: form.model_algorithm,
+      target_column: form.target_column,
+      features: form.features
+        ? form.features
+            .split(",")
+            .map((f) => f.trim())
+            .filter(Boolean)
+        : null,
+      hyperparameters: cleanParams,
+      name: form.name.trim() || undefined,
+      description: form.description.trim() || undefined,
+    };
+  };
 
-	const handleRetrain = async () => {
-		if (!retrainModel) return;
-		if (
-			!retrainForm.dataset_id ||
-			!retrainForm.model_algorithm ||
-			!retrainForm.target_column
-		) {
-			toast.error("Please fill in all required fields");
-			return;
-		}
-		try {
-			setIsRetraining(true);
-			await api.post(
-				`/ml_model/${retrainModel.id}/retrain`,
-				buildPayload(retrainForm, retrainHyperparams, retrainSchemas),
-			);
-			toast.success("Model retrained — new version created!");
-			setRetrainModel(null);
-			setRetrainForm(EMPTY_FORM);
-			setRetrainHyperparams({});
-			await fetchData();
-		} catch (error: any) {
-			toast.error(error.response?.data?.detail || "Retrain failed");
-		} finally {
-			setIsRetraining(false);
-		}
-	};
+  // ── handlers ─────────────────────────────────────────────────────────
+  const handleTrain = async () => {
+    if (
+      !trainForm.dataset_id ||
+      !trainForm.model_algorithm ||
+      !trainForm.target_column
+    ) {
+      toast.error("Please fill in all required fields");
+      return;
+    }
+    try {
+      setIsTraining(true);
+      await api.post(
+        "/ml_model/train",
+        buildPayload(trainForm, trainHyperparams, trainSchemas),
+      );
+      toast.success("Model trained successfully!");
+      setIsTrainOpen(false);
+      setTrainForm(EMPTY_FORM);
+      setTrainHyperparams({});
+      await fetchData();
+    } catch (error: any) {
+      toast.error(error.response?.data?.detail || "Training failed");
+    } finally {
+      setIsTraining(false);
+    }
+  };
 
-	const openRetrain = (model: MLModel) => {
-		setRetrainModel(model);
-		setRetrainForm({ ...EMPTY_FORM, model_algorithm: model.model_type });
-		setRetrainHyperparams({});
-	};
+  const handleRetrain = async () => {
+    if (!retrainModel) return;
+    if (
+      !retrainForm.dataset_id ||
+      !retrainForm.model_algorithm ||
+      !retrainForm.target_column
+    ) {
+      toast.error("Please fill in all required fields");
+      return;
+    }
+    try {
+      setIsRetraining(true);
+      await api.post(
+        `/ml_model/${retrainModel.id}/retrain`,
+        buildPayload(retrainForm, retrainHyperparams, retrainSchemas),
+      );
+      toast.success("Model retrained — new version created!");
+      setRetrainModel(null);
+      setRetrainForm(EMPTY_FORM);
+      setRetrainHyperparams({});
+      await fetchData();
+    } catch (error: any) {
+      toast.error(error.response?.data?.detail || "Retrain failed");
+    } finally {
+      setIsRetraining(false);
+    }
+  };
 
-	const openLineage = async (model: MLModel) => {
-		setLineageModel(model);
-		setLineageVersions([]);
-		try {
-			setIsLoadingLineage(true);
-			const res = await api.get(`/ml_model/${model.id}/versions`);
-			setLineageVersions(res.data || []);
-		} catch {
-			toast.error("Failed to load version history");
-		} finally {
-			setIsLoadingLineage(false);
-		}
-	};
+  const openRetrain = (model: MLModel) => {
+    setRetrainModel(model);
+    setRetrainForm({ ...EMPTY_FORM, model_algorithm: model.model_type });
+    setRetrainHyperparams({});
+  };
 
-	const handleDeleteConfirm = async () => {
-		if (!deleteModel) return;
-		try {
-			setIsDeleting(true);
-			await api.delete(`/ml_model/${deleteModel.id}`);
-			toast.success(`"${deleteModel.name}" deleted`);
-			setModels((prev) => prev.filter((m) => m.id !== deleteModel.id));
-			setDeleteModel(null);
-		} catch (error: any) {
-			toast.error(error.response?.data?.detail || "Delete failed");
-		} finally {
-			setIsDeleting(false);
-		}
-	};
+  const openLineage = async (model: MLModel) => {
+    setLineageModel(model);
+    setLineageVersions([]);
+    try {
+      setIsLoadingLineage(true);
+      const res = await api.get(`/ml_model/${model.id}/versions`);
+      setLineageVersions(res.data || []);
+    } catch {
+      toast.error("Failed to load version history");
+    } finally {
+      setIsLoadingLineage(false);
+    }
+  };
 
-	const handleDownload = async (model: MLModel) => {
-		try {
-			setDownloadingId(model.id);
-			const res = await api.get(`/ml_model/${model.id}/download`, {
-				responseType: "blob",
-			});
-			const url = window.URL.createObjectURL(new Blob([res.data]));
-			const a = document.createElement("a");
-			a.href = url;
-			a.download = `${model.name.replace(/\s+/g, "_")}_v${model.version}.joblib`;
-			document.body.appendChild(a);
-			a.click();
-			a.remove();
-			window.URL.revokeObjectURL(url);
-			toast.success("Model downloaded");
-		} catch (error: any) {
-			toast.error(error.response?.data?.detail || "Download failed");
-		} finally {
-			setDownloadingId(null);
-		}
-	};
+  const handleDeleteConfirm = async () => {
+    if (!deleteModel) return;
+    try {
+      setIsDeleting(true);
+      await api.delete(`/ml_model/${deleteModel.id}`);
+      toast.success(`"${deleteModel.name}" deleted`);
+      setModels((prev) => prev.filter((m) => m.id !== deleteModel.id));
+      setDeleteModel(null);
+    } catch (error: any) {
+      toast.error(error.response?.data?.detail || "Delete failed");
+    } finally {
+      setIsDeleting(false);
+    }
+  };
 
-	const openPredict = (model: MLModel) => {
-		// Parse stored inputs string into feature list
-		const featureCols = parseInputCols(model.inputs);
-		const initial: Record<string, string> = {};
-		featureCols.forEach((col) => {
-			initial[col] = "";
-		});
-		setPredictInputs(initial);
-		setPredictResult(null);
-		setPredictModel(model);
-	};
+  const openEdit = (model: MLModel) => {
+    setEditModel(model);
+    setEditName(model.name);
+    setEditDescription(model.description ?? "");
+  };
 
-	const handlePredict = async () => {
-		if (!predictModel) return;
-		// Validate all inputs filled
-		const empty = Object.entries(predictInputs).filter(
-			([, v]) => v.trim() === "",
-		);
-		if (empty.length > 0) {
-			toast.error(`Fill in: ${empty.map(([k]) => k).join(", ")}`);
-			return;
-		}
-		// Convert string values to numbers where possible
-		const coerced: Record<string, any> = {};
-		Object.entries(predictInputs).forEach(([k, v]) => {
-			const num = Number(v);
-			coerced[k] = Number.isNaN(num) ? v : num;
-		});
-		try {
-			setIsPredicting(true);
-			const res = await api.post(`/ml_model/${predictModel.id}/predict`, {
-				inputs: coerced,
-			});
-			setPredictResult({
-				predictions: res.data.predictions,
-				probabilities: res.data.probabilities,
-				target: res.data.target,
-			});
-		} catch (error: any) {
-			toast.error(error.response?.data?.detail || "Prediction failed");
-		} finally {
-			setIsPredicting(false);
-		}
-	};
+  const handleEditSave = async () => {
+    if (!editModel) return;
+    try {
+      setIsSavingEdit(true);
+      const res = await api.patch(`/ml_model/${editModel.id}`, {
+        name: editName.trim(),
+        description: editDescription.trim(),
+      });
+      toast.success("Model updated!");
+      setModels((prev) =>
+        prev.map((m) =>
+          m.id === editModel.id
+            ? { ...m, name: res.data.name, description: res.data.description }
+            : m,
+        ),
+      );
+      setEditModel(null);
+    } catch (error: any) {
+      toast.error(error.response?.data?.detail || "Update failed");
+    } finally {
+      setIsSavingEdit(false);
+    }
+  };
 
-	// ── Reusable form ─────────────────────────────────────────────────────
-	const TrainFormFields = ({
-		form,
-		setForm,
-		schemas,
-		hyperparams,
-		setHyperparams,
-		isLoadingSchemas,
-	}: {
-		form: typeof EMPTY_FORM;
-		setForm: (f: typeof EMPTY_FORM) => void;
-		schemas: HyperparamDef[];
-		hyperparams: Record<string, any>;
-		setHyperparams: (h: Record<string, any>) => void;
-		isLoadingSchemas: boolean;
-	}) => (
-		<div className="grid gap-4 py-2">
-			{/* Dataset */}
-			<div className="space-y-1.5">
-				<Label>
-					Dataset <span className="text-destructive">*</span>
-				</Label>
-				<Select
-					value={form.dataset_id}
-					onValueChange={(v) => setForm({ ...form, dataset_id: v })}
-				>
-					<SelectTrigger>
-						<SelectValue placeholder="Select a dataset..." />
-					</SelectTrigger>
-					<SelectContent>
-						{datasets.map((d) => (
-							<SelectItem key={d.id} value={d.id}>
-								{d.name}
-							</SelectItem>
-						))}
-					</SelectContent>
-				</Select>
-			</div>
+  const handleDownload = async (model: MLModel) => {
+    try {
+      setDownloadingId(model.id);
+      const res = await api.get(`/ml_model/${model.id}/download`, {
+        responseType: "blob",
+      });
+      const url = window.URL.createObjectURL(new Blob([res.data]));
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `${model.name.replace(/\s+/g, "_")}_v${model.version}.joblib`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      window.URL.revokeObjectURL(url);
+      toast.success("Model downloaded");
+    } catch (error: any) {
+      toast.error(error.response?.data?.detail || "Download failed");
+    } finally {
+      setDownloadingId(null);
+    }
+  };
 
-			{/* Algorithm */}
-			<div className="space-y-1.5">
-				<Label>
-					Algorithm <span className="text-destructive">*</span>
-				</Label>
-				<Select
-					value={form.model_algorithm}
-					onValueChange={(v) => setForm({ ...form, model_algorithm: v })}
-				>
-					<SelectTrigger>
-						<SelectValue placeholder="Select an algorithm..." />
-					</SelectTrigger>
-					<SelectContent>
-						<SelectGroup>
-							<SelectLabel>Classifiers</SelectLabel>
-							{CLASSIFIER_ALGOS.map((a) => (
-								<SelectItem key={a.value} value={a.value}>
-									{a.label}
-								</SelectItem>
-							))}
-						</SelectGroup>
-						<SelectGroup>
-							<SelectLabel>Regressors</SelectLabel>
-							{REGRESSOR_ALGOS.map((a) => (
-								<SelectItem key={a.value} value={a.value}>
-									{a.label}
-								</SelectItem>
-							))}
-						</SelectGroup>
-					</SelectContent>
-				</Select>
-			</div>
+  const openPredict = (model: MLModel) => {
+    // Parse stored inputs string into feature list
+    const featureCols = parseInputCols(model.inputs);
+    const initial: Record<string, string> = {};
+    featureCols.forEach((col) => {
+      initial[col] = "";
+    });
+    setPredictInputs(initial);
+    setPredictResult(null);
+    setPredictModel(model);
+  };
 
-			{/* Target column */}
-			<div className="space-y-1.5">
-				<Label htmlFor="target">
-					Target Column <span className="text-destructive">*</span>
-				</Label>
-				<Input
-					id="target"
-					placeholder="e.g. price, label, species"
-					value={form.target_column}
-					onChange={(e) => setForm({ ...form, target_column: e.target.value })}
-				/>
-			</div>
+  const handlePredict = async () => {
+    if (!predictModel) return;
+    // Validate all inputs filled
+    const empty = Object.entries(predictInputs).filter(
+      ([, v]) => v.trim() === "",
+    );
+    if (empty.length > 0) {
+      toast.error(`Fill in: ${empty.map(([k]) => k).join(", ")}`);
+      return;
+    }
+    // Convert string values to numbers where possible
+    const coerced: Record<string, any> = {};
+    Object.entries(predictInputs).forEach(([k, v]) => {
+      const num = Number(v);
+      coerced[k] = Number.isNaN(num) ? v : num;
+    });
+    try {
+      setIsPredicting(true);
+      const res = await api.post(`/ml_model/${predictModel.id}/predict`, {
+        inputs: coerced,
+      });
+      setPredictResult({
+        predictions: res.data.predictions,
+        probabilities: res.data.probabilities,
+        target: res.data.target,
+      });
+    } catch (error: any) {
+      toast.error(error.response?.data?.detail || "Prediction failed");
+    } finally {
+      setIsPredicting(false);
+    }
+  };
 
-			{/* Features */}
-			<div className="space-y-1.5">
-				<Label htmlFor="features">
-					Feature Columns{" "}
-					<span className="text-muted-foreground text-xs">
-						(optional, comma-separated)
-					</span>
-				</Label>
-				<Input
-					id="features"
-					placeholder="e.g. col1, col2 — leave blank to use all"
-					value={form.features}
-					onChange={(e) => setForm({ ...form, features: e.target.value })}
-				/>
-			</div>
+  // ── Reusable form ─────────────────────────────────────────────────────
+  const TrainFormFields = ({
+    form,
+    setForm,
+    schemas,
+    hyperparams,
+    setHyperparams,
+    isLoadingSchemas,
+  }: {
+    form: typeof EMPTY_FORM;
+    setForm: (f: typeof EMPTY_FORM) => void;
+    schemas: HyperparamDef[];
+    hyperparams: Record<string, any>;
+    setHyperparams: (h: Record<string, any>) => void;
+    isLoadingSchemas: boolean;
+  }) => (
+    <div className="grid gap-4 py-2">
+      {/* Name */}
+      <div className="space-y-1.5">
+        <Label htmlFor="model-name">
+          Model Name{" "}
+          <span className="text-muted-foreground text-xs">(optional)</span>
+        </Label>
+        <Input
+          id="model-name"
+          placeholder="e.g. House Price Predictor"
+          value={form.name}
+          onChange={(e) => setForm({ ...form, name: e.target.value })}
+        />
+      </div>
 
-			{/* Hyperparameters */}
-			{form.model_algorithm && (
-				<div className="space-y-2 border rounded-lg p-3 bg-muted/30">
-					<div className="flex items-center justify-between">
-						<Label className="text-sm font-semibold">Hyperparameters</Label>
-						{isLoadingSchemas && (
-							<Loader2 className="w-3.5 h-3.5 animate-spin text-muted-foreground" />
-						)}
-					</div>
-					{!isLoadingSchemas && schemas.length === 0 && (
-						<p className="text-xs text-muted-foreground">
-							No configurable hyperparameters.
-						</p>
-					)}
-					{!isLoadingSchemas && schemas.length > 0 && (
-						<ScrollArea className="max-h-52 pr-2">
-							<div className="space-y-3">
-								{schemas.map((s) => (
-									<HyperparamField
-										key={s.name}
-										def={s}
-										value={hyperparams[s.name]}
-										onChange={(v) =>
-											setHyperparams({ ...hyperparams, [s.name]: v })
-										}
-									/>
-								))}
-							</div>
-						</ScrollArea>
-					)}
-				</div>
-			)}
-		</div>
-	);
+      {/* Description */}
+      <div className="space-y-1.5">
+        <Label htmlFor="model-desc">
+          Description{" "}
+          <span className="text-muted-foreground text-xs">(optional)</span>
+        </Label>
+        <Input
+          id="model-desc"
+          placeholder="Short description of what this model does"
+          value={form.description}
+          onChange={(e) => setForm({ ...form, description: e.target.value })}
+        />
+      </div>
 
-	// ── Render ────────────────────────────────────────────────────────────
-	return (
-		<div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
-			{/* Header */}
-			<div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-				<div>
-					<h2 className="text-3xl font-bold tracking-tight">ML Models</h2>
-					<p className="text-muted-foreground mt-1">
-						Train, retrain, and track lineage of your models.
-					</p>
-				</div>
-				<div className="flex gap-2">
-					<Button
-						variant="outline"
-						size="icon"
-						onClick={fetchData}
-						disabled={isLoading}
-					>
-						<RefreshCw
-							className={`w-4 h-4 ${isLoading ? "animate-spin" : ""}`}
-						/>
-					</Button>
-					<Dialog open={isTrainOpen} onOpenChange={setIsTrainOpen}>
-						<DialogTrigger asChild>
-							<Button className="gap-2">
-								<Plus className="w-4 h-4" /> Train Model
-							</Button>
-						</DialogTrigger>
-						<DialogContent className="sm:max-w-[520px] flex flex-col max-h-[85vh] p-0 overflow-hidden">
-							<DialogHeader className="shrink-0 p-6 pb-3">
-								<DialogTitle>Train a New Model</DialogTitle>
-								<DialogDescription>
-									Select a dataset, algorithm, and tune hyperparameters.
-								</DialogDescription>
-							</DialogHeader>
-							<div className="flex-1 overflow-y-auto px-6">
-								<TrainFormFields
-									form={trainForm}
-									setForm={setTrainForm}
-									schemas={trainSchemas}
-									hyperparams={trainHyperparams}
-									setHyperparams={setTrainHyperparams}
-									isLoadingSchemas={isLoadingTrainSchemas}
-								/>
-							</div>
-							<DialogFooter className="shrink-0 border-t border-border/60 px-6 py-4 mt-0">
-								<Button
-									variant="outline"
-									onClick={() => setIsTrainOpen(false)}
-									disabled={isTraining}
-								>
-									Cancel
-								</Button>
-								<Button onClick={handleTrain} disabled={isTraining}>
-									{isTraining ? (
-										<>
-											<Loader2 className="w-4 h-4 mr-2 animate-spin" />{" "}
-											Training...
-										</>
-									) : (
-										<>
-											<FlaskConical className="w-4 h-4 mr-2" /> Start Training
-										</>
-									)}
-								</Button>
-							</DialogFooter>
-						</DialogContent>
-					</Dialog>
-				</div>
-			</div>
+      {/* Dataset */}
+      <div className="space-y-1.5">
+        <Label>
+          Dataset <span className="text-destructive">*</span>
+        </Label>
+        <Select
+          value={form.dataset_id}
+          onValueChange={(v) => setForm({ ...form, dataset_id: v })}
+        >
+          <SelectTrigger>
+            <SelectValue placeholder="Select a dataset..." />
+          </SelectTrigger>
+          <SelectContent>
+            {datasets.map((d) => (
+              <SelectItem key={d.id} value={d.id}>
+                {d.name}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
 
-			{/* Model cards */}
-			{isLoading ? (
-				<div className="flex items-center justify-center min-h-[400px]">
-					<Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
-				</div>
-			) : models.length === 0 ? (
-				<div className="border rounded-xl p-8 bg-card/30 backdrop-blur-sm border-dashed border-primary/20 flex flex-col items-center justify-center text-center min-h-[400px]">
-					<div className="max-w-[420px] space-y-4">
-						<div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mx-auto text-primary">
-							<Library className="w-8 h-8" />
-						</div>
-						<h3 className="text-xl font-semibold">No models trained yet</h3>
-						<p className="text-sm text-muted-foreground">
-							Upload a dataset first, then click "Train Model" to get started.
-						</p>
-						<Button variant="outline" onClick={() => setIsTrainOpen(true)}>
-							Train your first model
-						</Button>
-					</div>
-				</div>
-			) : (
-				<div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-					{models.map((model) => (
-						<Card
-							key={model.id}
-							className="group hover:shadow-md transition-all hover:border-primary/30"
-						>
-							<CardHeader className="flex flex-row items-start justify-between pb-2">
-								<div className="space-y-1 pr-2 min-w-0">
-									<CardTitle className="text-base truncate" title={model.name}>
-										{model.name}
-									</CardTitle>
-									<CardDescription className="flex items-center gap-2 flex-wrap">
-										<Badge variant="secondary" className="text-xs font-mono">
-											v{model.version}
-										</Badge>
-										<Badge variant="outline" className="text-xs">
-											{model.model_type?.replace(/_/g, " ")}
-										</Badge>
-										{model.parent_id && (
-											<Badge
-												variant="outline"
-												className="text-xs gap-1 text-blue-500 border-blue-500/30"
-											>
-												<GitBranch className="w-3 h-3" /> Retrained
-											</Badge>
-										)}
-									</CardDescription>
-								</div>
-								<DropdownMenu>
-									<DropdownMenuTrigger asChild>
-										<Button
-											variant="ghost"
-											size="icon"
-											className="h-8 w-8 shrink-0 opacity-50 group-hover:opacity-100 transition-opacity"
-										>
-											<MoreVertical className="w-4 h-4" />
-										</Button>
-									</DropdownMenuTrigger>
-									<DropdownMenuContent align="end">
-										<DropdownMenuItem
-											className="gap-2"
-											onClick={() => openPredict(model)}
-										>
-											<TestTube2 className="w-4 h-4" /> Test / Predict
-										</DropdownMenuItem>
-										<DropdownMenuItem
-											className="gap-2"
-											onClick={() => handleDownload(model)}
-											disabled={downloadingId === model.id}
-										>
-											{downloadingId === model.id ? (
-												<Loader2 className="w-4 h-4 animate-spin" />
-											) : (
-												<Download className="w-4 h-4" />
-											)}{" "}
-											Download .joblib
-										</DropdownMenuItem>
-										<DropdownMenuSeparator />
-										<DropdownMenuItem
-											className="gap-2"
-											onClick={() => openRetrain(model)}
-										>
-											<FlaskConical className="w-4 h-4" /> Retrain
-										</DropdownMenuItem>
-										<DropdownMenuItem
-											className="gap-2"
-											onClick={() => openLineage(model)}
-										>
-											<GitBranch className="w-4 h-4" /> View Lineage
-										</DropdownMenuItem>
-										<DropdownMenuSeparator />
-										<DropdownMenuItem
-											className="gap-2 text-destructive focus:text-destructive"
-											onClick={() => setDeleteModel(model)}
-										>
-											<Trash2 className="w-4 h-4" /> Delete
-										</DropdownMenuItem>
-									</DropdownMenuContent>
-								</DropdownMenu>
-							</CardHeader>
-							<CardContent>
-								<div className="space-y-2 mt-1">
-									<div className="flex items-center justify-between text-xs text-muted-foreground">
-										<span>Accuracy</span>
-										<span
-											className={`font-bold text-sm ${
-												model.accuracy >= 0.9
-													? "text-emerald-400"
-													: model.accuracy >= 0.7
-														? "text-amber-400"
-														: "text-red-400"
-											}`}
-										>
-											{(model.accuracy * 100).toFixed(1)}%
-										</span>
-									</div>
-									<Progress
-										value={model.accuracy * 100}
-										className={`h-1.5 ${
-											model.accuracy >= 0.9
-												? "[&>[data-slot=progress-indicator]]:bg-emerald-400"
-												: model.accuracy >= 0.7
-													? "[&>[data-slot=progress-indicator]]:bg-amber-400"
-													: "[&>[data-slot=progress-indicator]]:bg-red-400"
-										}`}
-									/>
-									<div className="flex justify-between text-xs text-muted-foreground mt-1">
-										<span>
-											Error:{" "}
-											<span className="text-foreground font-medium">
-												{(model.error * 100).toFixed(1)}%
-											</span>
-										</span>
-										{model.created_at && (
-											<span>
-												{new Date(model.created_at).toLocaleDateString()}
-											</span>
-										)}
-									</div>
-								</div>
-							</CardContent>
-							<CardFooter className="border-t pt-3 gap-2">
-								<Button
-									variant="ghost"
-									size="sm"
-									className="flex-1 gap-1.5 text-muted-foreground hover:text-primary"
-									onClick={() => openPredict(model)}
-								>
-									<TestTube2 className="w-4 h-4" /> Test
-								</Button>
-								<Button
-									variant="ghost"
-									size="sm"
-									className="flex-1 gap-1.5 text-muted-foreground hover:text-primary"
-									onClick={() => openRetrain(model)}
-								>
-									<FlaskConical className="w-4 h-4" /> Retrain
-								</Button>
-								<Button
-									variant="ghost"
-									size="sm"
-									className="gap-1.5 text-muted-foreground hover:text-primary px-2"
-									onClick={() => handleDownload(model)}
-									disabled={downloadingId === model.id}
-								>
-									{downloadingId === model.id ? (
-										<Loader2 className="w-4 h-4 animate-spin" />
-									) : (
-										<Download className="w-4 h-4" />
-									)}
-								</Button>
-							</CardFooter>
-						</Card>
-					))}
-				</div>
-			)}
+      {/* Algorithm */}
+      <div className="space-y-1.5">
+        <Label>
+          Algorithm <span className="text-destructive">*</span>
+        </Label>
+        <Select
+          value={form.model_algorithm}
+          onValueChange={(v) => setForm({ ...form, model_algorithm: v })}
+        >
+          <SelectTrigger>
+            <SelectValue placeholder="Select an algorithm..." />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectGroup>
+              <SelectLabel>Classifiers</SelectLabel>
+              {CLASSIFIER_ALGOS.map((a) => (
+                <SelectItem key={a.value} value={a.value}>
+                  {a.label}
+                </SelectItem>
+              ))}
+            </SelectGroup>
+            <SelectGroup>
+              <SelectLabel>Regressors</SelectLabel>
+              {REGRESSOR_ALGOS.map((a) => (
+                <SelectItem key={a.value} value={a.value}>
+                  {a.label}
+                </SelectItem>
+              ))}
+            </SelectGroup>
+          </SelectContent>
+        </Select>
+      </div>
 
-			{/* ── Delete Confirmation Dialog ─────────────────────────── */}
-			<Dialog
-				open={!!deleteModel}
-				onOpenChange={(o) => !o && setDeleteModel(null)}
-			>
-				<DialogContent className="sm:max-w-[400px]">
-					<DialogHeader>
-						<DialogTitle className="flex items-center gap-2 text-destructive">
-							<Trash2 className="w-5 h-5" /> Delete Model
-						</DialogTitle>
-						<DialogDescription>
-							Are you sure you want to delete{" "}
-							<span className="font-semibold text-foreground">
-								{deleteModel?.name}
-							</span>
-							? This will permanently remove the model and its saved file.
-						</DialogDescription>
-					</DialogHeader>
-					<DialogFooter>
-						<Button
-							variant="outline"
-							onClick={() => setDeleteModel(null)}
-							disabled={isDeleting}
-						>
-							Cancel
-						</Button>
-						<Button
-							variant="destructive"
-							onClick={handleDeleteConfirm}
-							disabled={isDeleting}
-						>
-							{isDeleting ? (
-								<>
-									<Loader2 className="w-4 h-4 mr-2 animate-spin" /> Deleting...
-								</>
-							) : (
-								"Delete"
-							)}
-						</Button>
-					</DialogFooter>
-				</DialogContent>
-			</Dialog>
+      {/* Target column */}
+      <div className="space-y-1.5">
+        <Label htmlFor="target">
+          Target Column <span className="text-destructive">*</span>
+        </Label>
+        <Input
+          id="target"
+          placeholder="e.g. price, label, species"
+          value={form.target_column}
+          onChange={(e) => setForm({ ...form, target_column: e.target.value })}
+        />
+      </div>
 
-			{/* ── Predict / Test Dialog ─────────────────────────────── */}
-			<Dialog
-				open={!!predictModel}
-				onOpenChange={(o) => {
-					if (!o) {
-						setPredictModel(null);
-						setPredictResult(null);
-						setPredictInputs({});
-					}
-				}}
-			>
-				<DialogContent className="sm:max-w-[520px] flex flex-col max-h-[85vh] p-0 overflow-hidden">
-					<DialogHeader className="shrink-0 p-6 pb-3">
-						<DialogTitle className="flex items-center gap-2">
-							<TestTube2 className="w-5 h-5" /> Test — {predictModel?.name}
-							<Badge variant="secondary" className="ml-auto text-xs font-mono">
-								{Object.keys(predictInputs).length} feature
-								{Object.keys(predictInputs).length !== 1 ? "s" : ""}
-							</Badge>
-						</DialogTitle>
-						<DialogDescription>
-							Enter feature values to run a single-row prediction. Target:{" "}
-							<span className="font-medium text-foreground">
-								{predictModel?.outputs}
-							</span>
-						</DialogDescription>
-					</DialogHeader>
+      {/* Features */}
+      <div className="space-y-1.5">
+        <Label htmlFor="features">
+          Feature Columns{" "}
+          <span className="text-muted-foreground text-xs">
+            (optional, comma-separated)
+          </span>
+        </Label>
+        <Input
+          id="features"
+          placeholder="e.g. col1, col2 — leave blank to use all"
+          value={form.features}
+          onChange={(e) => setForm({ ...form, features: e.target.value })}
+        />
+      </div>
 
-					<div className="flex-1 overflow-y-auto px-6 pb-2">
-						{/* Input fields */}
-						{!predictResult ? (
-							<PredictInputs
-								inputs={predictInputs}
-								onChange={(col, val) =>
-									setPredictInputs((prev) => ({ ...prev, [col]: val }))
-								}
-							/>
-						) : (
-							/* Result view */
-							<div className="py-4 space-y-4">
-								{/* Prediction */}
-								<div className="rounded-xl border bg-muted/30 p-4 space-y-2">
-									<p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
-										Prediction
-									</p>
-									{predictResult.predictions.map((pred, i) => (
-										<div key={i} className="flex items-center gap-2">
-											<CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
-											<span className="text-sm text-muted-foreground">
-												{predictResult.target}:
-											</span>
-											<span className="text-lg font-bold text-primary">
-												{String(pred)}
-											</span>
-										</div>
-									))}
-								</div>
+      {/* Hyperparameters */}
+      {form.model_algorithm && (
+        <div className="space-y-2 border rounded-lg p-3 bg-muted/30">
+          <div className="flex items-center justify-between">
+            <Label className="text-sm font-semibold">Hyperparameters</Label>
+            {isLoadingSchemas && (
+              <Loader2 className="w-3.5 h-3.5 animate-spin text-muted-foreground" />
+            )}
+          </div>
+          {!isLoadingSchemas && schemas.length === 0 && (
+            <p className="text-xs text-muted-foreground">
+              No configurable hyperparameters.
+            </p>
+          )}
+          {!isLoadingSchemas && schemas.length > 0 && (
+            <ScrollArea className="max-h-52 pr-2">
+              <div className="space-y-3">
+                {schemas.map((s) => (
+                  <HyperparamField
+                    key={s.name}
+                    def={s}
+                    value={hyperparams[s.name]}
+                    onChange={(v) =>
+                      setHyperparams({ ...hyperparams, [s.name]: v })
+                    }
+                  />
+                ))}
+              </div>
+            </ScrollArea>
+          )}
+        </div>
+      )}
+    </div>
+  );
 
-								{/* Probabilities (classifiers only) */}
-								{predictResult.probabilities &&
-									predictResult.probabilities.length > 0 && (
-										<div className="rounded-xl border bg-muted/30 p-4 space-y-2">
-											<p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
-												Class Probabilities
-											</p>
-											{Object.entries(predictResult.probabilities[0])
-												.sort(([, a], [, b]) => b - a)
-												.map(([cls, prob]) => (
-													<div key={cls} className="space-y-0.5">
-														<div className="flex justify-between text-xs">
-															<span className="font-mono">{cls}</span>
-															<span
-																className={`font-bold ${prob >= 0.5 ? "text-primary" : "text-muted-foreground"}`}
-															>
-																{(prob * 100).toFixed(1)}%
-															</span>
-														</div>
-														<Progress
-															value={prob * 100}
-															className={`h-1.5 ${prob >= 0.5 ? "[&>[data-slot=progress-indicator]]:bg-primary" : "[&>[data-slot=progress-indicator]]:bg-muted-foreground"}`}
-														/>
-													</div>
-												))}
-										</div>
-									)}
+  // ── Render ────────────────────────────────────────────────────────────
+  return (
+    <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+        <div>
+          <h2 className="text-3xl font-bold tracking-tight">ML Models</h2>
+          <p className="text-muted-foreground mt-1">
+            Train, retrain, and track lineage of your models.
+          </p>
+        </div>
+        <div className="flex gap-2">
+          <Button
+            variant="outline"
+            size="icon"
+            onClick={fetchData}
+            disabled={isLoading}
+          >
+            <RefreshCw
+              className={`w-4 h-4 ${isLoading ? "animate-spin" : ""}`}
+            />
+          </Button>
+          <Dialog open={isTrainOpen} onOpenChange={setIsTrainOpen}>
+            <DialogTrigger asChild>
+              <Button className="gap-2">
+                <Plus className="w-4 h-4" /> Train Model
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="sm:max-w-[520px] flex flex-col max-h-[85vh] p-0 overflow-hidden">
+              <DialogHeader className="shrink-0 p-6 pb-3">
+                <DialogTitle>Train a New Model</DialogTitle>
+                <DialogDescription>
+                  Select a dataset, algorithm, and tune hyperparameters.
+                </DialogDescription>
+              </DialogHeader>
+              <div className="flex-1 overflow-y-auto px-6">
+                <TrainFormFields
+                  form={trainForm}
+                  setForm={setTrainForm}
+                  schemas={trainSchemas}
+                  hyperparams={trainHyperparams}
+                  setHyperparams={setTrainHyperparams}
+                  isLoadingSchemas={isLoadingTrainSchemas}
+                />
+              </div>
+              <DialogFooter className="shrink-0 border-t border-border/60 px-6 py-4 mt-0">
+                <Button
+                  variant="outline"
+                  onClick={() => setIsTrainOpen(false)}
+                  disabled={isTraining}
+                >
+                  Cancel
+                </Button>
+                <Button onClick={handleTrain} disabled={isTraining}>
+                  {isTraining ? (
+                    <>
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />{" "}
+                      Training...
+                    </>
+                  ) : (
+                    <>
+                      <FlaskConical className="w-4 h-4 mr-2" /> Start Training
+                    </>
+                  )}
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+        </div>
+      </div>
 
-								{/* Inputs recap */}
-								<details className="text-xs text-muted-foreground">
-									<summary className="cursor-pointer hover:text-foreground">
-										View inputs used
-									</summary>
-									<div className="mt-2 rounded-lg border bg-muted/20 p-3 grid grid-cols-2 gap-1">
-										{Object.entries(predictInputs).map(([k, v]) => (
-											<div key={k} className="flex gap-1">
-												<span className="font-mono text-muted-foreground">
-													{k}:
-												</span>
-												<span className="font-medium">{v}</span>
-											</div>
-										))}
-									</div>
-								</details>
-							</div>
-						)}
-					</div>
+      {/* Model cards */}
+      {isLoading ? (
+        <div className="flex items-center justify-center min-h-[400px]">
+          <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
+        </div>
+      ) : models.length === 0 ? (
+        <div className="border rounded-xl p-8 bg-card/30 backdrop-blur-sm border-dashed border-primary/20 flex flex-col items-center justify-center text-center min-h-[400px]">
+          <div className="max-w-[420px] space-y-4">
+            <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mx-auto text-primary">
+              <Library className="w-8 h-8" />
+            </div>
+            <h3 className="text-xl font-semibold">No models trained yet</h3>
+            <p className="text-sm text-muted-foreground">
+              Upload a dataset first, then click "Train Model" to get started.
+            </p>
+            <Button variant="outline" onClick={() => setIsTrainOpen(true)}>
+              Train your first model
+            </Button>
+          </div>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {models.map((model) => (
+            <Card
+              key={model.id}
+              className="group hover:shadow-md transition-all hover:border-primary/30"
+            >
+              <CardHeader className="flex flex-row items-start justify-between pb-2">
+                <div className="space-y-1 pr-2 min-w-0">
+                  <CardTitle className="text-base truncate" title={model.name}>
+                    {model.name}
+                  </CardTitle>
+                  <CardDescription className="flex items-center gap-2 flex-wrap">
+                    <Badge variant="secondary" className="text-xs font-mono">
+                      v{model.version}
+                    </Badge>
+                    <Badge variant="outline" className="text-xs">
+                      {model.model_type?.replace(/_/g, " ")}
+                    </Badge>
+                    {model.parent_id && (
+                      <Badge
+                        variant="outline"
+                        className="text-xs gap-1 text-blue-500 border-blue-500/30"
+                      >
+                        <GitBranch className="w-3 h-3" /> Retrained
+                      </Badge>
+                    )}
+                  </CardDescription>
+                </div>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8 shrink-0 opacity-50 group-hover:opacity-100 transition-opacity"
+                    >
+                      <MoreVertical className="w-4 h-4" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end">
+                    <DropdownMenuItem
+                      className="gap-2"
+                      onClick={() => openPredict(model)}
+                    >
+                      <TestTube2 className="w-4 h-4" /> Test / Predict
+                    </DropdownMenuItem>
+                    <DropdownMenuItem
+                      className="gap-2"
+                      onClick={() => handleDownload(model)}
+                      disabled={downloadingId === model.id}
+                    >
+                      {downloadingId === model.id ? (
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                      ) : (
+                        <Download className="w-4 h-4" />
+                      )}{" "}
+                      Download .joblib
+                    </DropdownMenuItem>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem
+                      className="gap-2"
+                      onClick={() => openEdit(model)}
+                    >
+                      <Pencil className="w-4 h-4" /> Edit
+                    </DropdownMenuItem>
+                    <DropdownMenuItem
+                      className="gap-2"
+                      onClick={() => openRetrain(model)}
+                    >
+                      <FlaskConical className="w-4 h-4" /> Retrain
+                    </DropdownMenuItem>
+                    <DropdownMenuItem
+                      className="gap-2"
+                      onClick={() => openLineage(model)}
+                    >
+                      <GitBranch className="w-4 h-4" /> View Lineage
+                    </DropdownMenuItem>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem
+                      className="gap-2 text-destructive focus:text-destructive"
+                      onClick={() => setDeleteModel(model)}
+                    >
+                      <Trash2 className="w-4 h-4" /> Delete
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-2 mt-1">
+                  <div className="flex items-center justify-between text-xs text-muted-foreground">
+                    <span>Accuracy</span>
+                    <span
+                      className={`font-bold text-sm ${
+                        model.accuracy >= 0.9
+                          ? "text-emerald-400"
+                          : model.accuracy >= 0.7
+                            ? "text-amber-400"
+                            : "text-red-400"
+                      }`}
+                    >
+                      {(model.accuracy * 100).toFixed(1)}%
+                    </span>
+                  </div>
+                  <Progress
+                    value={model.accuracy * 100}
+                    className={`h-1.5 ${
+                      model.accuracy >= 0.9
+                        ? "[&>[data-slot=progress-indicator]]:bg-emerald-400"
+                        : model.accuracy >= 0.7
+                          ? "[&>[data-slot=progress-indicator]]:bg-amber-400"
+                          : "[&>[data-slot=progress-indicator]]:bg-red-400"
+                    }`}
+                  />
+                  <div className="flex justify-between text-xs text-muted-foreground mt-1">
+                    <span>
+                      Error:{" "}
+                      <span className="text-foreground font-medium">
+                        {(model.error * 100).toFixed(1)}%
+                      </span>
+                    </span>
+                    {model.created_at && (
+                      <span>
+                        {new Date(model.created_at).toLocaleDateString()}
+                      </span>
+                    )}
+                  </div>
+                </div>
+              </CardContent>
+              <CardFooter className="border-t pt-3 gap-2">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="flex-1 gap-1.5 text-muted-foreground hover:text-primary"
+                  onClick={() => openPredict(model)}
+                >
+                  <TestTube2 className="w-4 h-4" /> Test
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="flex-1 gap-1.5 text-muted-foreground hover:text-primary"
+                  onClick={() => openRetrain(model)}
+                >
+                  <FlaskConical className="w-4 h-4" /> Retrain
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="gap-1.5 text-muted-foreground hover:text-primary px-2"
+                  onClick={() => handleDownload(model)}
+                  disabled={downloadingId === model.id}
+                >
+                  {downloadingId === model.id ? (
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  ) : (
+                    <Download className="w-4 h-4" />
+                  )}
+                </Button>
+              </CardFooter>
+            </Card>
+          ))}
+        </div>
+      )}
 
-					<div className="shrink-0 border-t border-border/60 px-6 py-4 flex justify-between items-center gap-2">
-						{predictResult ? (
-							<>
-								<Button
-									variant="outline"
-									size="sm"
-									onClick={() => setPredictResult(null)}
-								>
-									← Edit inputs
-								</Button>
-								<Button
-									variant="outline"
-									onClick={() => {
-										setPredictModel(null);
-										setPredictResult(null);
-										setPredictInputs({});
-									}}
-								>
-									Close
-								</Button>
-							</>
-						) : (
-							<>
-								<Button
-									variant="outline"
-									onClick={() => {
-										setPredictModel(null);
-										setPredictResult(null);
-										setPredictInputs({});
-									}}
-									disabled={isPredicting}
-								>
-									Cancel
-								</Button>
-								<Button
-									onClick={handlePredict}
-									disabled={
-										isPredicting || Object.keys(predictInputs).length === 0
-									}
-								>
-									{isPredicting ? (
-										<>
-											<Loader2 className="w-4 h-4 mr-2 animate-spin" />{" "}
-											Predicting...
-										</>
-									) : (
-										<>
-											<TestTube2 className="w-4 h-4 mr-2" /> Run Prediction
-										</>
-									)}
-								</Button>
-							</>
-						)}
-					</div>
-				</DialogContent>
-			</Dialog>
+      {/* ── Edit Model Dialog ──────────────────────────────────── */}
+      <Dialog open={!!editModel} onOpenChange={(o) => !o && setEditModel(null)}>
+        <DialogContent className="sm:max-w-[440px]">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Pencil className="w-5 h-5" /> Edit Model
+            </DialogTitle>
+            <DialogDescription>
+              Update the name and description for this model.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <div className="space-y-1.5">
+              <Label htmlFor="edit-model-name">Name</Label>
+              <Input
+                id="edit-model-name"
+                value={editName}
+                onChange={(e) => setEditName(e.target.value)}
+                placeholder="Model name"
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="edit-model-desc">Description</Label>
+              <Textarea
+                id="edit-model-desc"
+                value={editDescription}
+                onChange={(e) => setEditDescription(e.target.value)}
+                placeholder="Short description"
+                rows={3}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setEditModel(null)}
+              disabled={isSavingEdit}
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={handleEditSave}
+              disabled={isSavingEdit || !editName.trim()}
+            >
+              {isSavingEdit ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" /> Saving...
+                </>
+              ) : (
+                "Save"
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
-			{/* ── Retrain Dialog ─────────────────────────────────────── */}
-			<Dialog
-				open={!!retrainModel}
-				onOpenChange={(o) => !o && setRetrainModel(null)}
-			>
-				<DialogContent className="sm:max-w-[520px] flex flex-col max-h-[85vh] p-0 overflow-hidden">
-					<DialogHeader className="shrink-0 p-6 pb-3">
-						<DialogTitle className="flex items-center gap-2">
-							<FlaskConical className="w-5 h-5" /> Retrain —{" "}
-							{retrainModel?.name}
-						</DialogTitle>
-						<DialogDescription>
-							Creates a new version. Current: v{retrainModel?.version}
-						</DialogDescription>
-					</DialogHeader>
-					<div className="flex-1 overflow-y-auto px-6">
-						<TrainFormFields
-							form={retrainForm}
-							setForm={setRetrainForm}
-							schemas={retrainSchemas}
-							hyperparams={retrainHyperparams}
-							setHyperparams={setRetrainHyperparams}
-							isLoadingSchemas={isLoadingRetrainSchemas}
-						/>
-					</div>
-					<DialogFooter className="shrink-0 border-t border-border/60 px-6 py-4">
-						<Button
-							variant="outline"
-							onClick={() => setRetrainModel(null)}
-							disabled={isRetraining}
-						>
-							Cancel
-						</Button>
-						<Button onClick={handleRetrain} disabled={isRetraining}>
-							{isRetraining ? (
-								<>
-									<Loader2 className="w-4 h-4 mr-2 animate-spin" />{" "}
-									Retraining...
-								</>
-							) : (
-								<>
-									<FlaskConical className="w-4 h-4 mr-2" /> Retrain
-								</>
-							)}
-						</Button>
-					</DialogFooter>
-				</DialogContent>
-			</Dialog>
+      {/* ── Delete Confirmation Dialog ─────────────────────────── */}
+      <Dialog
+        open={!!deleteModel}
+        onOpenChange={(o) => !o && setDeleteModel(null)}
+      >
+        <DialogContent className="sm:max-w-[400px]">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-destructive">
+              <Trash2 className="w-5 h-5" /> Delete Model
+            </DialogTitle>
+            <DialogDescription>
+              Are you sure you want to delete{" "}
+              <span className="font-semibold text-foreground">
+                {deleteModel?.name}
+              </span>
+              ? This will permanently remove the model and its saved file.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setDeleteModel(null)}
+              disabled={isDeleting}
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={handleDeleteConfirm}
+              disabled={isDeleting}
+            >
+              {isDeleting ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" /> Deleting...
+                </>
+              ) : (
+                "Delete"
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
-			{/* ── Lineage Sheet ──────────────────────────────────────── */}
-			<Sheet
-				open={!!lineageModel}
-				onOpenChange={(o) => !o && setLineageModel(null)}
-			>
-				<SheetContent className="w-full sm:max-w-lg overflow-y-auto">
-					{lineageModel && (
-						<>
-							<SheetHeader className="mb-6">
-								<SheetTitle className="flex items-center gap-2">
-									<GitBranch className="w-5 h-5" /> Version Lineage
-								</SheetTitle>
-								<SheetDescription>
-									{lineageModel.name} — full version history
-								</SheetDescription>
-							</SheetHeader>
+      {/* ── Predict / Test Dialog ─────────────────────────────── */}
+      <Dialog
+        open={!!predictModel}
+        onOpenChange={(o) => {
+          if (!o) {
+            setPredictModel(null);
+            setPredictResult(null);
+            setPredictInputs({});
+          }
+        }}
+      >
+        <DialogContent className="sm:max-w-[520px] flex flex-col max-h-[85vh] p-0 overflow-hidden">
+          <DialogHeader className="shrink-0 p-6 pb-3">
+            <DialogTitle className="flex items-center gap-2">
+              <TestTube2 className="w-5 h-5" /> Test — {predictModel?.name}
+              <Badge variant="secondary" className="ml-auto text-xs font-mono">
+                {Object.keys(predictInputs).length} feature
+                {Object.keys(predictInputs).length !== 1 ? "s" : ""}
+              </Badge>
+            </DialogTitle>
+            <DialogDescription>
+              Enter feature values to run a single-row prediction. Target:{" "}
+              <span className="font-medium text-foreground">
+                {predictModel?.outputs}
+              </span>
+            </DialogDescription>
+          </DialogHeader>
 
-							{isLoadingLineage ? (
-								<div className="flex items-center justify-center py-12">
-									<Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
-								</div>
-							) : lineageVersions.length === 0 ? (
-								<p className="text-sm text-muted-foreground text-center py-8">
-									No version history found.
-								</p>
-							) : (
-								<div className="relative">
-									<div className="absolute left-4 top-2 bottom-2 w-px bg-border" />
-									<div className="space-y-4">
-										{[...lineageVersions]
-											.sort((a, b) =>
-												a.version.localeCompare(b.version, undefined, {
-													numeric: true,
-												}),
-											)
-											.map((v, i) => (
-												<div key={v.id} className="flex gap-4 relative">
-													<div
-														className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 z-10 border-2 ${i === 0 ? "bg-primary border-primary text-primary-foreground" : "bg-background border-border"}`}
-													>
-														<span className="text-xs font-bold">{i + 1}</span>
-													</div>
-													<div className="flex-1 bg-muted/40 rounded-lg p-3 border">
-														<div className="flex items-center justify-between mb-1">
-															<div className="flex items-center gap-2">
-																<Badge
-																	variant="secondary"
-																	className="font-mono text-xs"
-																>
-																	v{v.version}
-																</Badge>
-																{v.parent_id && (
-																	<Badge
-																		variant="outline"
-																		className="text-xs gap-1 text-blue-500 border-blue-500/30"
-																	>
-																		<GitBranch className="w-3 h-3" /> Retrained
-																	</Badge>
-																)}
-															</div>
-															{v.created_at && (
-																<span className="text-xs text-muted-foreground">
-																	{new Date(v.created_at).toLocaleDateString()}
-																</span>
-															)}
-														</div>
-														<div className="grid grid-cols-2 gap-2 mt-2">
-															<div className="flex items-center gap-1.5 text-sm">
-																<TrendingUp className="w-4 h-4 text-green-500" />
-																<span className="font-medium">
-																	{(v.accuracy * 100).toFixed(1)}%
-																</span>
-																<span className="text-muted-foreground text-xs">
-																	acc
-																</span>
-															</div>
-															<div className="flex items-center gap-1.5 text-sm">
-																<TrendingDown className="w-4 h-4 text-orange-500" />
-																<span className="font-medium">
-																	{(v.error * 100).toFixed(1)}%
-																</span>
-																<span className="text-muted-foreground text-xs">
-																	err
-																</span>
-															</div>
-														</div>
-														<p className="text-xs text-muted-foreground mt-1">
-															{v.model_type?.replace(/_/g, " ")}
-														</p>
-													</div>
-												</div>
-											))}
-									</div>
-								</div>
-							)}
-						</>
-					)}
-				</SheetContent>
-			</Sheet>
-		</div>
-	);
+          <div className="flex-1 overflow-y-auto px-6 pb-2">
+            {/* Input fields */}
+            {!predictResult ? (
+              <PredictInputs
+                inputs={predictInputs}
+                onChange={(col, val) =>
+                  setPredictInputs((prev) => ({ ...prev, [col]: val }))
+                }
+              />
+            ) : (
+              /* Result view */
+              <div className="py-4 space-y-4">
+                {/* Prediction */}
+                <div className="rounded-xl border bg-muted/30 p-4 space-y-2">
+                  <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+                    Prediction
+                  </p>
+                  {predictResult.predictions.map((pred, i) => (
+                    <div key={i} className="flex items-center gap-2">
+                      <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+                      <span className="text-sm text-muted-foreground">
+                        {predictResult.target}:
+                      </span>
+                      <span className="text-lg font-bold text-primary">
+                        {String(pred)}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Probabilities (classifiers only) */}
+                {predictResult.probabilities &&
+                  predictResult.probabilities.length > 0 && (
+                    <div className="rounded-xl border bg-muted/30 p-4 space-y-2">
+                      <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+                        Class Probabilities
+                      </p>
+                      {Object.entries(predictResult.probabilities[0])
+                        .sort(([, a], [, b]) => b - a)
+                        .map(([cls, prob]) => (
+                          <div key={cls} className="space-y-0.5">
+                            <div className="flex justify-between text-xs">
+                              <span className="font-mono">{cls}</span>
+                              <span
+                                className={`font-bold ${prob >= 0.5 ? "text-primary" : "text-muted-foreground"}`}
+                              >
+                                {(prob * 100).toFixed(1)}%
+                              </span>
+                            </div>
+                            <Progress
+                              value={prob * 100}
+                              className={`h-1.5 ${prob >= 0.5 ? "[&>[data-slot=progress-indicator]]:bg-primary" : "[&>[data-slot=progress-indicator]]:bg-muted-foreground"}`}
+                            />
+                          </div>
+                        ))}
+                    </div>
+                  )}
+
+                {/* Inputs recap */}
+                <details className="text-xs text-muted-foreground">
+                  <summary className="cursor-pointer hover:text-foreground">
+                    View inputs used
+                  </summary>
+                  <div className="mt-2 rounded-lg border bg-muted/20 p-3 grid grid-cols-2 gap-1">
+                    {Object.entries(predictInputs).map(([k, v]) => (
+                      <div key={k} className="flex gap-1">
+                        <span className="font-mono text-muted-foreground">
+                          {k}:
+                        </span>
+                        <span className="font-medium">{v}</span>
+                      </div>
+                    ))}
+                  </div>
+                </details>
+              </div>
+            )}
+          </div>
+
+          <div className="shrink-0 border-t border-border/60 px-6 py-4 flex justify-between items-center gap-2">
+            {predictResult ? (
+              <>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setPredictResult(null)}
+                >
+                  ← Edit inputs
+                </Button>
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    setPredictModel(null);
+                    setPredictResult(null);
+                    setPredictInputs({});
+                  }}
+                >
+                  Close
+                </Button>
+              </>
+            ) : (
+              <>
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    setPredictModel(null);
+                    setPredictResult(null);
+                    setPredictInputs({});
+                  }}
+                  disabled={isPredicting}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  onClick={handlePredict}
+                  disabled={
+                    isPredicting || Object.keys(predictInputs).length === 0
+                  }
+                >
+                  {isPredicting ? (
+                    <>
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />{" "}
+                      Predicting...
+                    </>
+                  ) : (
+                    <>
+                      <TestTube2 className="w-4 h-4 mr-2" /> Run Prediction
+                    </>
+                  )}
+                </Button>
+              </>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* ── Retrain Dialog ─────────────────────────────────────── */}
+      <Dialog
+        open={!!retrainModel}
+        onOpenChange={(o) => !o && setRetrainModel(null)}
+      >
+        <DialogContent className="sm:max-w-[520px] flex flex-col max-h-[85vh] p-0 overflow-hidden">
+          <DialogHeader className="shrink-0 p-6 pb-3">
+            <DialogTitle className="flex items-center gap-2">
+              <FlaskConical className="w-5 h-5" /> Retrain —{" "}
+              {retrainModel?.name}
+            </DialogTitle>
+            <DialogDescription>
+              Creates a new version. Current: v{retrainModel?.version}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex-1 overflow-y-auto px-6">
+            <TrainFormFields
+              form={retrainForm}
+              setForm={setRetrainForm}
+              schemas={retrainSchemas}
+              hyperparams={retrainHyperparams}
+              setHyperparams={setRetrainHyperparams}
+              isLoadingSchemas={isLoadingRetrainSchemas}
+            />
+          </div>
+          <DialogFooter className="shrink-0 border-t border-border/60 px-6 py-4">
+            <Button
+              variant="outline"
+              onClick={() => setRetrainModel(null)}
+              disabled={isRetraining}
+            >
+              Cancel
+            </Button>
+            <Button onClick={handleRetrain} disabled={isRetraining}>
+              {isRetraining ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />{" "}
+                  Retraining...
+                </>
+              ) : (
+                <>
+                  <FlaskConical className="w-4 h-4 mr-2" /> Retrain
+                </>
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* ── Lineage Sheet ──────────────────────────────────────── */}
+      <Sheet
+        open={!!lineageModel}
+        onOpenChange={(o) => !o && setLineageModel(null)}
+      >
+        <SheetContent className="w-full sm:max-w-lg overflow-y-auto">
+          {lineageModel && (
+            <>
+              <SheetHeader className="mb-6">
+                <SheetTitle className="flex items-center gap-2">
+                  <GitBranch className="w-5 h-5" /> Version Lineage
+                </SheetTitle>
+                <SheetDescription>
+                  {lineageModel.name} — full version history
+                </SheetDescription>
+              </SheetHeader>
+
+              {isLoadingLineage ? (
+                <div className="flex items-center justify-center py-12">
+                  <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
+                </div>
+              ) : lineageVersions.length === 0 ? (
+                <p className="text-sm text-muted-foreground text-center py-8">
+                  No version history found.
+                </p>
+              ) : (
+                <div className="relative">
+                  <div className="absolute left-4 top-2 bottom-2 w-px bg-border" />
+                  <div className="space-y-4">
+                    {[...lineageVersions]
+                      .sort((a, b) =>
+                        a.version.localeCompare(b.version, undefined, {
+                          numeric: true,
+                        }),
+                      )
+                      .map((v, i) => (
+                        <div key={v.id} className="flex gap-4 relative">
+                          <div
+                            className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 z-10 border-2 ${i === 0 ? "bg-primary border-primary text-primary-foreground" : "bg-background border-border"}`}
+                          >
+                            <span className="text-xs font-bold">{i + 1}</span>
+                          </div>
+                          <div className="flex-1 bg-muted/40 rounded-lg p-3 border">
+                            <div className="flex items-center justify-between mb-1">
+                              <div className="flex items-center gap-2">
+                                <Badge
+                                  variant="secondary"
+                                  className="font-mono text-xs"
+                                >
+                                  v{v.version}
+                                </Badge>
+                                {v.parent_id && (
+                                  <Badge
+                                    variant="outline"
+                                    className="text-xs gap-1 text-blue-500 border-blue-500/30"
+                                  >
+                                    <GitBranch className="w-3 h-3" /> Retrained
+                                  </Badge>
+                                )}
+                              </div>
+                              {v.created_at && (
+                                <span className="text-xs text-muted-foreground">
+                                  {new Date(v.created_at).toLocaleDateString()}
+                                </span>
+                              )}
+                            </div>
+                            <div className="grid grid-cols-2 gap-2 mt-2">
+                              <div className="flex items-center gap-1.5 text-sm">
+                                <TrendingUp className="w-4 h-4 text-green-500" />
+                                <span className="font-medium">
+                                  {(v.accuracy * 100).toFixed(1)}%
+                                </span>
+                                <span className="text-muted-foreground text-xs">
+                                  acc
+                                </span>
+                              </div>
+                              <div className="flex items-center gap-1.5 text-sm">
+                                <TrendingDown className="w-4 h-4 text-orange-500" />
+                                <span className="font-medium">
+                                  {(v.error * 100).toFixed(1)}%
+                                </span>
+                                <span className="text-muted-foreground text-xs">
+                                  err
+                                </span>
+                              </div>
+                            </div>
+                            <p className="text-xs text-muted-foreground mt-1">
+                              {v.model_type?.replace(/_/g, " ")}
+                            </p>
+                          </div>
+                        </div>
+                      ))}
+                  </div>
+                </div>
+              )}
+            </>
+          )}
+        </SheetContent>
+      </Sheet>
+    </div>
+  );
 }

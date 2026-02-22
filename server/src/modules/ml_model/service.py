@@ -1,7 +1,6 @@
 import ast
 import json
 import os
-from typing import List
 from uuid import UUID, uuid4
 
 import joblib
@@ -223,9 +222,9 @@ class MLModelService:
             db=db,
             obj_in={
                 "id": uuid4(),
-                "name": f"{data.model_algorithm} Model",
+                "name": data.name or f"{data.model_algorithm} Model",
                 "version": "1.0",
-                "description": f"Trained {data.model_algorithm} on dataset",
+                "description": data.description or f"Trained {data.model_algorithm} on dataset",
                 "model_type": data.model_algorithm,
                 "inputs": str(X.columns.tolist()),
                 "outputs": data.target_column,
@@ -251,7 +250,7 @@ class MLModelService:
         }
 
     @log_execution
-    def get_model_versions(self, db: Session, model_id: UUID) -> List[CreateMLModelResponse]:
+    def get_model_versions(self, db: Session, model_id: UUID) -> list[CreateMLModelResponse]:
         model = self.get_model(db=db, model_id=model_id)
         if not model:
             raise HTTPException(status_code=404, detail="Model not found")
@@ -318,7 +317,7 @@ class MLModelService:
         return self.repo.get_by_id(db=db, id=model_id)
 
     @log_execution
-    def get_models(self, db: Session) -> List[CreateMLModelResponse]:
+    def get_models(self, db: Session) -> list[CreateMLModelResponse]:
         return self.repo.get(db=db)
 
     @log_execution
@@ -360,6 +359,25 @@ class MLModelService:
         # Delete model DB record
         self.repo.delete(db=db, id=model_id)
         return {"detail": "Model deleted successfully", "id": str(model_id)}
+
+    @log_execution
+    def update_model_meta(
+        self, db: Session, model_id: UUID, name: str, description: str | None, user_id: UUID
+    ):
+        model = self.repo.get_by_id(db=db, id=model_id)
+        if not model:
+            raise HTTPException(status_code=404, detail="Model not found")
+        if model.user_id != user_id:
+            raise HTTPException(status_code=403, detail="Not authorized")
+        updated = self.repo.update(
+            db=db,
+            db_obj=model,
+            obj_in={
+                "name": name,
+                "description": description or model.description,
+            },
+        )
+        return updated
 
     @log_execution
     def download_model(self, db: Session, model_id: UUID, user_id: UUID) -> FileResponse:

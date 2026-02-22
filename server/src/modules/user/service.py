@@ -1,9 +1,9 @@
-from src.common.logging.logger import log_execution
-from typing import Dict, Sequence
-
+from collections.abc import Sequence
 from uuid import UUID
+
 from sqlalchemy.orm import Session
 
+from src.common.logging.logger import log_execution
 from src.common.security import Security
 from src.modules.user.schema import (
     User,
@@ -37,7 +37,7 @@ class UserService:
         return created_user
 
     @log_execution
-    def get_user(self, db: Session, filters: Dict = {}) -> Sequence[User]:
+    def get_user(self, db: Session, filters: dict = {}) -> Sequence[User]:
         data = self.repo.get(db=db, filters=filters)
         return data
 

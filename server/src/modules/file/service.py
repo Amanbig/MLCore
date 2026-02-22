@@ -1,6 +1,6 @@
 import shutil
+from collections.abc import Sequence
 from pathlib import Path
-from typing import Sequence
 from uuid import UUID
 
 from fastapi import HTTPException, UploadFile

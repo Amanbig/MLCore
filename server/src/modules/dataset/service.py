@@ -1,4 +1,3 @@
-from typing import List
 from uuid import UUID
 
 import pandas as pd
@@ -87,7 +86,7 @@ class DatasetService:
         return dataset
 
     @log_execution
-    def get_datasets(self, db: Session, user_id: UUID) -> List[DatasetResponse]:
+    def get_datasets(self, db: Session, user_id: UUID) -> list[DatasetResponse]:
         return self.repo.get(db=db, filters={"user_id": user_id})
 
     @log_execution
@@ -117,7 +116,7 @@ class DatasetService:
     @log_execution
     def get_dataset_versions(
         self, db: Session, dataset_id: UUID, user_id: UUID
-    ) -> List[DatasetResponse]:
+    ) -> list[DatasetResponse]:
         dataset = self.get_dataset(db=db, dataset_id=dataset_id)
         if dataset.user_id != user_id:
             raise HTTPException(status_code=403, detail="Unauthorized")

@@ -6,7 +6,12 @@ from sqlalchemy.orm import Session
 from src.common.db.session import get_db
 from src.modules.auth.schema import AuthToken
 from src.modules.auth.service import AuthService
-from src.modules.ml_model.schema import CreateMLModelRequest, PredictRequest, TrainModelRequest
+from src.modules.ml_model.schema import (
+    CreateMLModelRequest,
+    PredictRequest,
+    TrainModelRequest,
+    UpdateModelMetaRequest,
+)
 from src.modules.ml_model.service import MLModelService
 from src.modules.ml_model.utils.hyperparams import get_hyperparams
 
@@ -123,6 +128,24 @@ def update_model(
 ):
     return ml_model_service.update_model(
         db=db, model_id=model_id, data=data, file=file, user_id=token_payload.id
+    )
+
+
+@router.patch("/ml_model/{model_id}")
+def update_model_meta(
+    request: Request,
+    model_id: UUID,
+    data: UpdateModelMetaRequest,
+    db: Session = Depends(get_db),
+    token_payload: AuthToken = Depends(auth_service.security_service.verify_auth_token),
+):
+    """Update only the name and description of a model."""
+    return ml_model_service.update_model_meta(
+        db=db,
+        model_id=model_id,
+        name=data.name,
+        description=data.description,
+        user_id=token_payload.id,
     )
 
 

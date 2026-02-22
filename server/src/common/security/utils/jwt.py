@@ -1,5 +1,5 @@
 from datetime import datetime, timedelta, timezone
-from typing import Any, Dict, Optional
+from typing import Any
 
 import jwt
 
@@ -21,7 +21,7 @@ class JWTManager:
             algorithm=self.algorithm,
         )
 
-    def verify_token(self, token: str) -> Optional[Dict]:
+    def verify_token(self, token: str) -> dict | None:
         try:
             decode = jwt.decode(token, self.secret, algorithms=[self.algorithm])
             return decode

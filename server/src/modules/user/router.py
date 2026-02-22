@@ -1,4 +1,4 @@
-from typing import Any, Dict
+from typing import Any
 
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
@@ -16,7 +16,7 @@ router = APIRouter(prefix="/user", redirect_slashes=True)
 user_service = UserService()
 
 
-def serialize_model(obj: Any) -> Dict:
+def serialize_model(obj: Any) -> dict:
     """Convert SQLAlchemy model to dictionary for JSON serialization."""
     if hasattr(obj, "__dict__"):
         return {key: value for key, value in obj.__dict__.items() if not key.startswith("_")}
@@ -24,7 +24,7 @@ def serialize_model(obj: Any) -> Dict:
 
 
 @router.get("")
-def get_user(db: Session = Depends(get_db)) -> Dict[str, Any]:
+def get_user(db: Session = Depends(get_db)) -> dict[str, Any]:
     users = user_service.get_user(db)
     # Serialize SQLAlchemy models to dictionaries
     serialized_users = [serialize_model(user) for user in users]
@@ -35,7 +35,7 @@ def get_user(db: Session = Depends(get_db)) -> Dict[str, Any]:
 def create_user(
     request: UserCreate,
     db: Session = Depends(get_db),
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     user = user_service.create_user(db=db, data=request)
     return {"detail": "User created successfully", "data": serialize_model(user)}
 
@@ -44,12 +44,12 @@ def create_user(
 def update_user(
     request: UserUpdate,
     db: Session = Depends(get_db),
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     user = user_service.update_user(db=db, data=request)
     return {"detail": "User updated successfully", "data": serialize_model(user)}
 
 
 @router.delete("")
-def delete_user(request: UserDelete, db: Session = Depends(get_db)) -> Dict[str, Any]:
+def delete_user(request: UserDelete, db: Session = Depends(get_db)) -> dict[str, Any]:
     user = user_service.delete_user(db=db, data=request)
     return {"detail": "User deleted successfully", "data": serialize_model(user)}

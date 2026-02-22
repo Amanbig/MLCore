@@ -1,4 +1,7 @@
+# Import all models dynamically so metadata is populated
+import importlib
 from logging.config import fileConfig
+from pathlib import Path
 
 from alembic import context
 from sqlalchemy import create_engine, pool
@@ -6,10 +9,6 @@ from sqlalchemy import create_engine, pool
 # Import your app settings and Base
 from src.common.config import settings
 from src.common.db.base import Base
-
-# Import all models dynamically so metadata is populated
-import importlib
-from pathlib import Path
 
 modules_path = Path(__file__).parent.parent / "src" / "modules"
 if modules_path.exists():

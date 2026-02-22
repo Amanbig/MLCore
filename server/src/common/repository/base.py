@@ -1,4 +1,4 @@
-from typing import Any, Generic, List, Optional, Type, TypeVar, Union
+from typing import Any, Generic, TypeVar, Union
 
 from pydantic import BaseModel
 from sqlalchemy.exc import SQLAlchemyError
@@ -8,15 +8,15 @@ T = TypeVar("T")
 
 
 class BaseRepository(Generic[T]):
-    def __init__(self, model: Type[T]):
+    def __init__(self, model: type[T]):
         self.model = model
 
     def get(
         self,
         db: Session,
         filters: Union[BaseModel, dict, None] = None,
-        load_relationships: Optional[List[str]] = None,
-    ) -> List[T]:
+        load_relationships: list[str] | None = None,
+    ) -> list[T]:
 
         query = db.query(self.model)
 
@@ -80,8 +80,8 @@ class BaseRepository(Generic[T]):
         return db_obj
 
     def get_by_id(
-        self, db: Session, id: Any, load_relationships: Optional[List[str]] = None
-    ) -> Optional[T]:
+        self, db: Session, id: Any, load_relationships: list[str] | None = None
+    ) -> T | None:
 
         query = db.query(self.model)
 
@@ -90,9 +90,9 @@ class BaseRepository(Generic[T]):
                 if hasattr(self.model, rel):
                     query = query.options(joinedload(getattr(self.model, rel)))
 
-        return query.filter(getattr(self.model, "id") == id).first()
+        return query.filter(self.model.id == id).first()
 
-    def delete(self, db: Session, id: Any) -> Optional[T]:
+    def delete(self, db: Session, id: Any) -> T | None:
         obj = self.get_by_id(db, id)
 
         if not obj:
