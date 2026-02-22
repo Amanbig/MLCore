@@ -121,4 +121,29 @@
     body {
         @apply bg-background text-foreground;
     }
+
+    /* ── Themed scrollbar (Webkit) ────────────────────────────────────── */
+    ::-webkit-scrollbar {
+        width: 6px;
+        height: 6px;
+    }
+    ::-webkit-scrollbar-track {
+        background: transparent;
+    }
+    ::-webkit-scrollbar-thumb {
+        background: oklch(1 0 0 / 15%);
+        border-radius: 999px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+        background: oklch(1 0 0 / 28%);
+    }
+    ::-webkit-scrollbar-corner {
+        background: transparent;
+    }
+
+    /* Firefox */
+    * {
+        scrollbar-width: thin;
+        scrollbar-color: oklch(1 0 0 / 15%) transparent;
+    }
 }
