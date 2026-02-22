@@ -1,8 +1,7 @@
 from datetime import datetime
 from uuid import UUID
 
-from fastapi import File, UploadFile
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel
 
 
 class FileBase(BaseModel):

@@ -1,7 +1,5 @@
 from uuid import UUID
-from fastapi import File
-from pydantic import BaseModel, ConfigDict
-from starlette.datastructures import UploadFile
+from pydantic import BaseModel
 
 
 class MLModelBase(BaseModel):

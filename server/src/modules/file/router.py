@@ -1,21 +1,18 @@
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, Request
+from fastapi import APIRouter, Depends, Request, UploadFile, File
 from sqlalchemy.orm import Session
 
 from src.common.db.session import get_db
 from src.modules.auth.schema import AuthToken
 from src.modules.auth.service import AuthService
-from src.modules.file.schema import FileCreate, FileDelete
+from src.modules.file.schema import FileDelete
 from src.modules.file.service import FileService
 
 router = APIRouter()
 
 file_service = FileService(dir="/uploads")
 auth_service = AuthService()
-
-
-from fastapi import APIRouter, Depends, Request, UploadFile, File
 
 
 @router.post("/file")
