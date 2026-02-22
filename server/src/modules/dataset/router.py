@@ -134,3 +134,18 @@ def refresh_dataset_metadata(
     return dataset_service.refresh_dataset_metadata(
         db=db, dataset_id=dataset_id, user_id=token_payload.id
     )
+
+
+@router.get("/dataset/{dataset_id}/versions")
+def get_dataset_versions(
+    request: Request,
+    dataset_id: UUID,
+    db: Session = Depends(get_db),
+    token_payload: AuthToken = Depends(
+        dataset_service.auth_service.security_service.verify_auth_token
+    ),
+):
+    """Return the full version history for a dataset lineage."""
+    return dataset_service.get_dataset_versions(
+        db=db, dataset_id=dataset_id, user_id=token_payload.id
+    )

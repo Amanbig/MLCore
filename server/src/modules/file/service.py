@@ -61,10 +61,34 @@ class FileService:
 
     @log_execution
     def delete_file(self, db: Session, data: FileDelete) -> FileDeleteResponse:
-        file = self.get_file_by_id(db, data.id)
-        file_path = Path(file.location)
-        if not file_path.exists():
+        import os
+
+        file = self.repo.get_by_id(db=db, id=data.id)
+        if file is None:
             raise HTTPException(status_code=404, detail="File not found")
 
-        file_path.unlink()
-        return FileDeleteResponse(**file.model_dump(), detail="File deleted successfully")
+        # Resolve path — stored with leading "/" which is not absolute on Windows
+        loc = file.location
+        file_path = Path(loc)
+        if not file_path.exists():
+            file_path = Path(os.getcwd()) / loc.lstrip("/").lstrip("\\").replace("/", os.sep)
+
+        # Delete physical file if it exists (don't hard-fail if already gone)
+        if file_path.exists():
+            file_path.unlink()
+
+        # Delete DB record
+        self.repo.delete(db=db, id=file.id)
+
+        return FileDeleteResponse(
+            id=file.id,
+            name=file.name,
+            size=file.size,
+            location=file.location,
+            file_type=file.file_type,
+            category=getattr(file, "category", "general"),
+            user_id=file.user_id,
+            created_at=file.created_at,
+            updated_at=file.updated_at,
+            detail="File deleted successfully",
+        )

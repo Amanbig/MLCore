@@ -15,6 +15,8 @@ from src.modules.dataset.schema import (
     DatasetTransformRequest,
 )
 from src.modules.dataset.store.repository import DatasetRepository
+from src.modules.file.schema import FileBase as FileBaseSchema
+from src.modules.file.schema import FileDelete
 from src.modules.file.service import FileService
 
 
@@ -29,8 +31,6 @@ class DatasetService:
         # File was already uploaded via POST /file — just look it up
         file_orm = self.file_service.get_file_by_id(db=db, id=data.file_id)
         # Convert ORM object → Pydantic FileBase (ORM mode)
-        from src.modules.file.schema import FileBase as FileBaseSchema
-
         file = FileBaseSchema.model_validate(file_orm, from_attributes=True)
 
         # Compute row/column counts from the actual file
@@ -110,8 +110,8 @@ class DatasetService:
                 status_code=403, detail="You are not authorized to delete this dataset"
             )
         file = self.file_service.get_file_by_id(db=db, id=dataset.file_id)
-        # Prevent deletion if the dataset has children? Or just cascade.
-        self.file_service.delete_file(db=db, data=file)
+        # Delete physical file and its DB record
+        self.file_service.delete_file(db=db, data=FileDelete(id=file.id))
         return self.repo.delete(db=db, id=dataset_id)
 
     @log_execution

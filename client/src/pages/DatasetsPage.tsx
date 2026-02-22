@@ -40,6 +40,9 @@ import {
 } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import {
   Database,
   FileUp,
@@ -53,7 +56,8 @@ import {
   BarChart3,
   Filter,
   Sigma,
-  RotateCcw,
+  Pencil,
+  GitBranch,
 } from "lucide-react";
 import { api } from "@/lib/api";
 import { toast } from "sonner";
@@ -82,8 +86,10 @@ interface Dataset {
   rows: number;
   columns: number;
   created_at: string;
+  parent_id: string | null;
   dataset_metadata: DatasetMeta;
   file: FileInfo;
+  file_id: string;
 }
 
 const CLEAN_STRATEGIES = [
@@ -114,6 +120,21 @@ export function DatasetsPage() {
   const [isWrangling, setIsWrangling] = useState(false);
   const [cleanStrategy, setCleanStrategy] = useState("drop_nulls");
   const [transformStrategy, setTransformStrategy] = useState("standard_scaler");
+
+  // Edit/rename dialog state
+  const [editDs, setEditDs] = useState<Dataset | null>(null);
+  const [editName, setEditName] = useState("");
+  const [editDescription, setEditDescription] = useState("");
+  const [isSavingEdit, setIsSavingEdit] = useState(false);
+
+  // Delete confirm dialog state
+  const [deleteDs, setDeleteDs] = useState<Dataset | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
+
+  // Versions sheet state
+  const [versionsDs, setVersionsDs] = useState<Dataset | null>(null);
+  const [versions, setVersions] = useState<Dataset[]>([]);
+  const [isLoadingVersions, setIsLoadingVersions] = useState(false);
 
   const fetchDatasets = async () => {
     try {
@@ -172,13 +193,18 @@ export function DatasetsPage() {
     }
   };
 
-  const handleDelete = async (id: string, name: string) => {
+  const handleDeleteConfirm = async () => {
+    if (!deleteDs) return;
     try {
-      await api.delete(`/dataset/${id}`);
-      toast.success(`"${name}" deleted`);
-      setDatasets((prev) => prev.filter((d) => d.id !== id));
+      setIsDeleting(true);
+      await api.delete(`/dataset/${deleteDs.id}`);
+      toast.success(`"${deleteDs.name}" deleted`);
+      setDatasets((prev) => prev.filter((d) => d.id !== deleteDs.id));
+      setDeleteDs(null);
     } catch (error: any) {
       toast.error(error.response?.data?.detail || "Delete failed");
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -190,6 +216,48 @@ export function DatasetsPage() {
       await fetchDatasets();
     } catch (error: any) {
       toast.error(error.response?.data?.detail || "Refresh failed");
+    }
+  };
+
+  const openEdit = (ds: Dataset) => {
+    setEditDs(ds);
+    setEditName(ds.name);
+    setEditDescription(ds.description);
+  };
+
+  const handleEditSave = async () => {
+    if (!editDs) return;
+    try {
+      setIsSavingEdit(true);
+      await api.put(`/dataset/${editDs.id}`, {
+        name: editName,
+        description: editDescription,
+        file_id: editDs.file_id,
+        rows: editDs.rows,
+        columns: editDs.columns,
+        dataset_metadata: editDs.dataset_metadata,
+      });
+      toast.success("Dataset updated!");
+      setEditDs(null);
+      await fetchDatasets();
+    } catch (error: any) {
+      toast.error(error.response?.data?.detail || "Update failed");
+    } finally {
+      setIsSavingEdit(false);
+    }
+  };
+
+  const openVersions = async (ds: Dataset) => {
+    setVersionsDs(ds);
+    setVersions([]);
+    setIsLoadingVersions(true);
+    try {
+      const res = await api.get(`/dataset/${ds.id}/versions`);
+      setVersions(res.data || []);
+    } catch (error: any) {
+      toast.error(error.response?.data?.detail || "Failed to load versions");
+    } finally {
+      setIsLoadingVersions(false);
     }
   };
 
@@ -279,7 +347,6 @@ export function DatasetsPage() {
             ))}
           </tbody>
         </table>
-        {/* missing values bar */}
         {cols.some((c) => (missing[c] ?? 0) > 0) && (
           <div className="p-3 border-t bg-muted/20 space-y-1">
             <p className="text-xs font-medium text-muted-foreground mb-2">
@@ -444,6 +511,11 @@ export function DatasetsPage() {
                     <span className="uppercase text-muted-foreground">
                       {ds.file?.file_type ?? "—"}
                     </span>
+                    {ds.parent_id && (
+                      <Badge variant="outline" className="text-xs gap-1">
+                        <GitBranch className="w-2.5 h-2.5" /> derived
+                      </Badge>
+                    )}
                   </CardDescription>
                 </div>
                 <DropdownMenu>
@@ -469,10 +541,28 @@ export function DatasetsPage() {
                     >
                       <Wand2 className="w-4 h-4" /> Wrangle
                     </DropdownMenuItem>
+                    <DropdownMenuItem
+                      className="gap-2"
+                      onClick={() => openEdit(ds)}
+                    >
+                      <Pencil className="w-4 h-4" /> Edit
+                    </DropdownMenuItem>
+                    <DropdownMenuItem
+                      className="gap-2"
+                      onClick={() => openVersions(ds)}
+                    >
+                      <GitBranch className="w-4 h-4" /> Versions
+                    </DropdownMenuItem>
+                    <DropdownMenuItem
+                      className="gap-2"
+                      onClick={() => handleRefresh(ds.id, ds.name)}
+                    >
+                      <RefreshCw className="w-4 h-4" /> Refresh metadata
+                    </DropdownMenuItem>
                     <DropdownMenuSeparator />
                     <DropdownMenuItem
                       className="gap-2 text-destructive focus:text-destructive"
-                      onClick={() => handleDelete(ds.id, ds.name)}
+                      onClick={() => setDeleteDs(ds)}
                     >
                       <Trash2 className="w-4 h-4" /> Delete
                     </DropdownMenuItem>
@@ -515,6 +605,174 @@ export function DatasetsPage() {
           ))}
         </div>
       )}
+
+      {/* ── Delete Confirmation Dialog ───────────────────────────── */}
+      <Dialog open={!!deleteDs} onOpenChange={(o) => !o && setDeleteDs(null)}>
+        <DialogContent className="sm:max-w-[400px]">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-destructive">
+              <Trash2 className="w-5 h-5" /> Delete Dataset
+            </DialogTitle>
+            <DialogDescription>
+              Are you sure you want to delete{" "}
+              <span className="font-semibold text-foreground">
+                {deleteDs?.name}
+              </span>
+              ? This will permanently remove the dataset and its file. This
+              action cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setDeleteDs(null)}
+              disabled={isDeleting}
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={handleDeleteConfirm}
+              disabled={isDeleting}
+            >
+              {isDeleting ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" /> Deleting...
+                </>
+              ) : (
+                "Delete"
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* ── Edit / Rename Dialog ─────────────────────────────────── */}
+      <Dialog open={!!editDs} onOpenChange={(o) => !o && setEditDs(null)}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Pencil className="w-5 h-5" /> Edit Dataset
+            </DialogTitle>
+            <DialogDescription>
+              Update the name and description of this dataset.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <div className="space-y-1.5">
+              <Label htmlFor="edit-name">Name</Label>
+              <Input
+                id="edit-name"
+                value={editName}
+                onChange={(e) => setEditName(e.target.value)}
+                placeholder="Dataset name"
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="edit-desc">Description</Label>
+              <Textarea
+                id="edit-desc"
+                value={editDescription}
+                onChange={(e) => setEditDescription(e.target.value)}
+                placeholder="Short description"
+                rows={3}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setEditDs(null)}
+              disabled={isSavingEdit}
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={handleEditSave}
+              disabled={isSavingEdit || !editName.trim()}
+            >
+              {isSavingEdit ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" /> Saving...
+                </>
+              ) : (
+                "Save"
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* ── Versions Sheet ───────────────────────────────────────── */}
+      <Sheet
+        open={!!versionsDs}
+        onOpenChange={(o) => !o && setVersionsDs(null)}
+      >
+        <SheetContent className="w-full sm:max-w-lg overflow-y-auto">
+          {versionsDs && (
+            <>
+              <SheetHeader className="mb-4">
+                <SheetTitle className="flex items-center gap-2">
+                  <GitBranch className="w-5 h-5" /> Version History
+                </SheetTitle>
+                <SheetDescription>
+                  All versions of{" "}
+                  <span className="font-medium text-foreground">
+                    {versionsDs.name}
+                  </span>
+                </SheetDescription>
+              </SheetHeader>
+              {isLoadingVersions ? (
+                <div className="flex items-center justify-center py-12">
+                  <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
+                </div>
+              ) : versions.length === 0 ? (
+                <p className="text-sm text-muted-foreground text-center py-8">
+                  No version history found.
+                </p>
+              ) : (
+                <div className="space-y-3">
+                  {[...versions]
+                    .sort((a, b) => a.version.localeCompare(b.version))
+                    .map((v) => (
+                      <div
+                        key={v.id}
+                        className="rounded-lg border p-3 space-y-1.5 hover:bg-muted/30 transition-colors"
+                      >
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            <Badge
+                              variant="secondary"
+                              className="font-mono text-xs"
+                            >
+                              v{v.version}
+                            </Badge>
+                            {!v.parent_id && (
+                              <Badge
+                                variant="outline"
+                                className="text-xs text-primary border-primary/40"
+                              >
+                                original
+                              </Badge>
+                            )}
+                          </div>
+                          <span className="text-xs text-muted-foreground">
+                            {new Date(v.created_at).toLocaleDateString()}
+                          </span>
+                        </div>
+                        <p className="text-sm font-medium">{v.name}</p>
+                        <p className="text-xs text-muted-foreground">
+                          {v.rows.toLocaleString()} rows · {v.columns} cols ·{" "}
+                          {v.file?.file_type?.toUpperCase() ?? "—"}
+                        </p>
+                      </div>
+                    ))}
+                </div>
+              )}
+            </>
+          )}
+        </SheetContent>
+      </Sheet>
 
       {/* ── Dataset Explorer Sheet ───────────────────────────────── */}
       <Sheet
@@ -621,15 +879,32 @@ export function DatasetsPage() {
                 </TabsContent>
               </Tabs>
 
-              <div className="mt-4">
+              <div className="mt-4 flex gap-2">
                 <Button
-                  className="gap-2 w-full"
+                  className="gap-2 flex-1"
                   onClick={() => {
                     setWrangleDs(explorerDs);
                     setExplorerDs(null);
                   }}
                 >
-                  <Wand2 className="w-4 h-4" /> Open Wrangle Dialog
+                  <Wand2 className="w-4 h-4" /> Wrangle
+                </Button>
+                <Button
+                  variant="outline"
+                  className="gap-2"
+                  onClick={() => {
+                    openEdit(explorerDs);
+                    setExplorerDs(null);
+                  }}
+                >
+                  <Pencil className="w-4 h-4" /> Edit
+                </Button>
+                <Button
+                  variant="outline"
+                  className="gap-2"
+                  onClick={() => handleRefresh(explorerDs.id, explorerDs.name)}
+                >
+                  <RefreshCw className="w-4 h-4" /> Refresh
                 </Button>
               </div>
             </>
