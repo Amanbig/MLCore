@@ -10,6 +10,9 @@ from src.modules.ml_model.router import router as ml_model_router
 from contextlib import asynccontextmanager
 from alembic.config import Config
 from alembic import command
+from src.common.logging.logger import log_execution, setup_logging
+
+setup_logging()
 
 
 @asynccontextmanager
@@ -30,5 +33,6 @@ app.include_router(ml_model_router)
 
 
 @app.get("/health")
+@log_execution
 def health():
     return JSONResponse("System is healthy")
