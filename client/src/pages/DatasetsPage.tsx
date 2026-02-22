@@ -979,7 +979,7 @@ export function DatasetsPage() {
 										)
 											.filter(([, v]) => v > 0)
 											.map(([col, val]) => ({
-												col: col.length > 10 ? col.slice(0, 10) + "…" : col,
+												col: col.length > 10 ? `${col.slice(0, 10)}…` : col,
 												pct: val,
 											}))
 											.sort((a, b) => b.pct - a.pct)
@@ -987,7 +987,7 @@ export function DatasetsPage() {
 
 										// Numeric ranges (min/max/mean) for up to 8 columns
 										const rangeData = numericCols.slice(0, 8).map((col) => ({
-											col: col.length > 8 ? col.slice(0, 8) + "…" : col,
+											col: col.length > 8 ? `${col.slice(0, 8)}…` : col,
 											mean: parseFloat((stats[col]?.mean ?? 0).toFixed(2)),
 											min: parseFloat((stats[col]?.min ?? 0).toFixed(2)),
 											max: parseFloat((stats[col]?.max ?? 0).toFixed(2)),

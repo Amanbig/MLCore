@@ -15,7 +15,7 @@ import {
 } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
-import { Database, Activity } from "lucide-react";
+import { Activity } from "lucide-react";
 
 export function AuthPage() {
 	const setAuth = useAuthStore((state) => state.setAuth);
