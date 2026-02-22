@@ -1,3 +1,4 @@
+from src.common.logging.logger import log_execution
 from typing import List
 from uuid import UUID
 
@@ -28,6 +29,7 @@ class MLModelService:
         self.dataset_service = DatasetService()
         self.repo = MLModelRepository()
 
+    @log_execution
     def train_model(self, db: Session, data: TrainModelRequest, user_id: UUID):
         dataset = self.dataset_service.get_dataset(db=db, dataset_id=data.dataset_id)
         if not dataset:
@@ -162,6 +164,7 @@ class MLModelService:
             "file_id": model_db_obj.file_id,
         }
 
+    @log_execution
     def get_model_versions(self, db: Session, model_id: UUID) -> List[CreateMLModelResponse]:
         model = self.get_model(db=db, model_id=model_id)
         if not model:
@@ -177,6 +180,7 @@ class MLModelService:
         )
         return models
 
+    @log_execution
     def retrain_model(self, db: Session, model_id: UUID, data: TrainModelRequest, user_id: UUID):
         parent_model = self.get_model(db=db, model_id=model_id)
         if not parent_model:
@@ -210,6 +214,7 @@ class MLModelService:
         res["name"] = new_model_db.name
         return res
 
+    @log_execution
     def create_model(
         self, db: Session, data: CreateMLModelRequest, file: UploadFile, user_id: UUID
     ) -> CreateMLModelResponse:
@@ -220,12 +225,15 @@ class MLModelService:
         model_obj = self.repo.create(db=db, obj_in=data_dict)
         return CreateMLModelResponse(**model_obj.__dict__, detail="Model created successfully")
 
+    @log_execution
     def get_model(self, db: Session, model_id: UUID) -> CreateMLModelResponse:
         return self.repo.get_by_id(db=db, id=model_id)
 
+    @log_execution
     def get_models(self, db: Session) -> List[CreateMLModelResponse]:
         return self.repo.get(db=db)
 
+    @log_execution
     def update_model(
         self,
         db: Session,
@@ -244,5 +252,6 @@ class MLModelService:
         model_obj = self.repo.update(db=db, db_obj=model_obj, obj_in=data_dict)
         return CreateMLModelResponse(**model_obj.__dict__, detail="Model updated successfully")
 
+    @log_execution
     def delete_model(self, db: Session, model_id: UUID) -> CreateMLModelResponse:
         return self.repo.delete(db=db, id=model_id)

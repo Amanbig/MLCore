@@ -1,3 +1,4 @@
+from src.common.logging.logger import log_execution
 from uuid import UUID
 
 from fastapi import HTTPException, Response
@@ -22,6 +23,7 @@ class AuthService:
         self.user_service = UserService()
         self.security_service = Security()
 
+    @log_execution
     def signup(self, request: SignupRequest, response: Response, db: Session) -> SignupResponse:
         # Check if email exists
         existing_user = self.user_service.get_user(db=db, filters={"email": request.email})
@@ -57,6 +59,7 @@ class AuthService:
             username=user.username, email=user.email, phone=user.phone, token=token
         )
 
+    @log_execution
     def login(self, request: LoginRequest, response: Response, db: Session) -> LoginResponse:
         # Build filters based on provided fields
         filters = {}
@@ -93,10 +96,12 @@ class AuthService:
             email=user.email, phone=user.phone, username=user.username, token=token
         )
 
+    @log_execution
     def logout(self, response: Response) -> LogoutResponse:
         self.security_service.cookie_manager.clear_auth_cookie(response)
         return LogoutResponse(detail="Logout is successful")
 
+    @log_execution
     def getProfile(self, id: UUID, db: Session) -> ProfileResponse:
         user = self.user_service.get_by_id(db=db, id=id)
 
@@ -104,5 +109,6 @@ class AuthService:
             id=user.id, email=user.email, phone=user.phone, username=user.username
         )
 
+    @log_execution
     def verify_token(self, token: str) -> AuthToken:
         return self.security_service.verify_auth_token(token)

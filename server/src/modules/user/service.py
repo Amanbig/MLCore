@@ -1,3 +1,4 @@
+from src.common.logging.logger import log_execution
 from typing import Dict, Sequence
 
 from uuid import UUID
@@ -21,6 +22,7 @@ class UserService:
         self.repo = UserRepository()
         self.security = Security()
 
+    @log_execution
     def create_user(self, data: UserCreate, db: Session) -> UserCreateResponse:
         # Hash the password before storing
         hashed_password = self.security.hash_password(data.password)
@@ -34,10 +36,12 @@ class UserService:
         created_user = self.repo.create(db=db, obj_in=user_data)
         return created_user
 
+    @log_execution
     def get_user(self, db: Session, filters: Dict = {}) -> Sequence[User]:
         data = self.repo.get(db=db, filters=filters)
         return data
 
+    @log_execution
     def update_user(self, db: Session, data: UserUpdate) -> UserUpdateResponse:
         query = self.repo.get_by_id(db, data.id)
 
@@ -50,8 +54,10 @@ class UserService:
 
         return self.repo.update(db=db, db_obj=query, obj_in=data)
 
+    @log_execution
     def delete_user(self, db: Session, data: UserDelete) -> UserDeleteResponse:
         return self.repo.delete(db, data.id)
 
+    @log_execution
     def get_by_id(self, db: Session, id: UUID) -> User:
         return self.repo.get_by_id(db, id)

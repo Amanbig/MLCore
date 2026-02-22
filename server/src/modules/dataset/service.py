@@ -15,13 +15,15 @@ from src.modules.dataset.schema import (
 )
 from src.modules.dataset.store.repository import DatasetRepository
 from src.modules.file.service import FileService
-from src.common.logger import log_execution
+from src.common.logging.logger import log_execution
+
 
 class DatasetService:
     def __init__(self):
         self.repo = DatasetRepository()
         self.file_service = FileService(dir="/uploads")
         self.auth_service = AuthService()
+
     @log_execution
     def create_dataset(self, db: Session, data: DatasetRequest, user_id: UUID) -> DatasetResponse:
         file = self.file_service.create_file(db=db, **data.model_dump())
@@ -36,13 +38,16 @@ class DatasetService:
         )
         return dataset
 
+    @log_execution
     def get_dataset(self, db: Session, dataset_id: UUID):
         dataset = self.repo.get_by_id(db=db, id=dataset_id)
         return dataset
 
+    @log_execution
     def get_datasets(self, db: Session, user_id: UUID) -> List[DatasetResponse]:
         return self.repo.get(db=db, filters={"user_id": user_id})
 
+    @log_execution
     def update_dataset(
         self, db: Session, dataset_id: UUID, data: DatasetRequest, user_id: UUID
     ) -> DatasetResponse:
@@ -54,6 +59,7 @@ class DatasetService:
         dataset = self.repo.update(db=db, obj_in=data, db_obj=dataset)
         return DatasetResponse(**dataset)
 
+    @log_execution
     def delete_dataset(self, db: Session, dataset_id: UUID, user_id: UUID):
         dataset = self.repo.get_by_id(db=db, id=dataset_id)
         if dataset.user_id != user_id:
@@ -65,6 +71,7 @@ class DatasetService:
         self.file_service.delete_file(db=db, data=file)
         return self.repo.delete(db=db, id=dataset_id)
 
+    @log_execution
     def get_dataset_versions(
         self, db: Session, dataset_id: UUID, user_id: UUID
     ) -> List[DatasetResponse]:
@@ -85,6 +92,7 @@ class DatasetService:
         )
         return datasets
 
+    @log_execution
     def _load_dataframe(self, db: Session, file_id: UUID):
         file = self.file_service.get_file_by_id(db=db, id=file_id)
         import os
@@ -101,6 +109,7 @@ class DatasetService:
             return pd.read_excel(loc), file, loc
         raise HTTPException(status_code=400, detail="Unsupported file format")
 
+    @log_execution
     def _save_new_dataset_version(
         self,
         db: Session,
@@ -162,6 +171,7 @@ class DatasetService:
         )
         return new_dataset
 
+    @log_execution
     def clean_dataset(
         self, db: Session, dataset_id: UUID, data: DatasetCleanRequest, user_id: UUID
     ):
@@ -188,6 +198,7 @@ class DatasetService:
 
         return self._save_new_dataset_version(db, df, dataset, user_id, "cleaned")
 
+    @log_execution
     def transform_dataset(
         self, db: Session, dataset_id: UUID, data: DatasetTransformRequest, user_id: UUID
     ):
@@ -215,6 +226,7 @@ class DatasetService:
 
         return self._save_new_dataset_version(db, df, dataset, user_id, "transformed")
 
+    @log_execution
     def get_dataset_params_details(self, db: Session, file_id: UUID):
         file = self.file_service.get_file(db=db, file_id=file_id)
         if file.file_type == "csv":
@@ -238,6 +250,7 @@ class DatasetService:
             "preview": dataset.head(5).to_dict(orient="records"),
         }
 
+    @log_execution
     def get_dataset_columns(self, db: Session, dataset_id: UUID):
         dataset = self.repo.get_by_id(db=db, id=dataset_id)
         file = self.file_service.get_file(db=db, file_id=dataset.file_id)
@@ -247,6 +260,7 @@ class DatasetService:
             dataset = pd.read_excel(file.location)
         return dataset.columns.tolist()
 
+    @log_execution
     def get_dataset_columns_details(self, db: Session, dataset_id: UUID):
         dataset = self.repo.get_by_id(db=db, id=dataset_id)
         file = self.file_service.get_file(db=db, file_id=dataset.file_id)
@@ -256,6 +270,7 @@ class DatasetService:
             dataset = pd.read_excel(file.location)
         return dataset.dtypes.astype(str).to_dict()
 
+    @log_execution
     def visualization_dataset(self, db: Session, dataset_id: UUID):
         dataset = self.repo.get_by_id(db=db, id=dataset_id)
         file = self.file_service.get_file(db=db, file_id=dataset.file_id)
@@ -265,6 +280,7 @@ class DatasetService:
             dataset = pd.read_excel(file.location)
         return dataset.hist().to_dict()
 
+    @log_execution
     def correlation_matrix(self, db: Session, dataset_id: UUID):
         dataset = self.repo.get_by_id(db=db, id=dataset_id)
         file = self.file_service.get_file(db=db, file_id=dataset.file_id)
