@@ -1,6 +1,6 @@
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, Request, UploadFile, File
+from fastapi import APIRouter, Depends, File, Request, UploadFile
 from sqlalchemy.orm import Session
 
 from src.common.db.session import get_db
@@ -8,6 +8,7 @@ from src.modules.auth.schema import AuthToken
 from src.modules.auth.service import AuthService
 from src.modules.ml_model.schema import CreateMLModelRequest, TrainModelRequest
 from src.modules.ml_model.service import MLModelService
+from src.modules.ml_model.utils.hyperparams import get_hyperparams
 
 router = APIRouter()
 
@@ -23,6 +24,16 @@ def train_model(
     token_payload: AuthToken = Depends(auth_service.security_service.verify_auth_token),
 ):
     return ml_model_service.train_model(db=db, data=data, user_id=token_payload.id)
+
+
+@router.get("/ml_model/hyperparameters/{algorithm}")
+def get_hyperparameters(
+    request: Request,
+    algorithm: str,
+    token_payload: AuthToken = Depends(auth_service.security_service.verify_auth_token),
+):
+    """Return the hyperparameter schema for a given algorithm."""
+    return {"algorithm": algorithm, "hyperparameters": get_hyperparams(algorithm)}
 
 
 @router.post("/ml_model/{model_id}/retrain")
@@ -99,4 +110,4 @@ def delete_model(
     db: Session = Depends(get_db),
     token_payload: AuthToken = Depends(auth_service.security_service.verify_auth_token),
 ):
-    return ml_model_service.delete_model(db=db, model_id=model_id)
+    return ml_model_service.delete_model(db=db, model_id=model_id, user_id=token_payload.id)

@@ -193,6 +193,7 @@ class DatasetService:
         )
 
         # Create dataset record
+        file_pydantic = FileBaseSchema.model_validate(file_obj, from_attributes=True)
         new_dataset = self.repo.create(
             db=db,
             obj_in=DatasetBase(
@@ -208,10 +209,8 @@ class DatasetService:
                 version=new_version,
                 created_at=pd.Timestamp.utcnow(),
                 updated_at=pd.Timestamp.utcnow(),
-                file=file_obj,  # Bypassing strictly using object maps, as the repo mapping works based on DB fields
-            ).model_dump(
-                exclude={"file", "created_at", "updated_at"}
-            ),  # remove relations / dates for DB insert
+                file=file_pydantic,
+            ).model_dump(exclude={"file", "created_at", "updated_at"}),
         )
         return new_dataset
 

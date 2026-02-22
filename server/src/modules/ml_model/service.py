@@ -315,5 +315,22 @@ class MLModelService:
         return CreateMLModelResponse(**model_obj.__dict__, detail="Model updated successfully")
 
     @log_execution
-    def delete_model(self, db: Session, model_id: UUID) -> CreateMLModelResponse:
-        return self.repo.delete(db=db, id=model_id)
+    def delete_model(self, db: Session, model_id: UUID, user_id: UUID):
+        model = self.repo.get_by_id(db=db, id=model_id)
+        if not model:
+            raise HTTPException(status_code=404, detail="Model not found")
+        if model.user_id != user_id:
+            raise HTTPException(status_code=403, detail="Not authorized to delete this model")
+
+        # Delete physical file + file DB record
+        if model.file_id:
+            from src.modules.file.schema import FileDelete
+
+            try:
+                self.file_service.delete_file(db=db, data=FileDelete(id=model.file_id))
+            except HTTPException:
+                pass  # File already gone – don't block model deletion
+
+        # Delete model DB record
+        self.repo.delete(db=db, id=model_id)
+        return {"detail": "Model deleted successfully", "id": str(model_id)}
