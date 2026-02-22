@@ -356,6 +356,174 @@ function parseInputCols(inputs: string | undefined | null): string[] {
   return [];
 }
 
+// ── TrainFormFields — top-level so React never remounts it on parent re-render
+function TrainFormFields({
+  form,
+  setForm,
+  datasets,
+  schemas,
+  hyperparams,
+  setHyperparams,
+  isLoadingSchemas,
+}: {
+  form: typeof EMPTY_FORM;
+  setForm: (f: typeof EMPTY_FORM) => void;
+  datasets: { id: string; name: string }[];
+  schemas: HyperparamDef[];
+  hyperparams: Record<string, any>;
+  setHyperparams: (h: Record<string, any>) => void;
+  isLoadingSchemas: boolean;
+}) {
+  return (
+    <div className="grid gap-4 py-2">
+      {/* Name */}
+      <div className="space-y-1.5">
+        <Label htmlFor="model-name">
+          Model Name{" "}
+          <span className="text-muted-foreground text-xs">(optional)</span>
+        </Label>
+        <Input
+          id="model-name"
+          placeholder="e.g. House Price Predictor"
+          value={form.name}
+          onChange={(e) => setForm({ ...form, name: e.target.value })}
+        />
+      </div>
+
+      {/* Description */}
+      <div className="space-y-1.5">
+        <Label htmlFor="model-desc">
+          Description{" "}
+          <span className="text-muted-foreground text-xs">(optional)</span>
+        </Label>
+        <Input
+          id="model-desc"
+          placeholder="Short description of what this model does"
+          value={form.description}
+          onChange={(e) => setForm({ ...form, description: e.target.value })}
+        />
+      </div>
+
+      {/* Dataset */}
+      <div className="space-y-1.5">
+        <Label>
+          Dataset <span className="text-destructive">*</span>
+        </Label>
+        <Select
+          value={form.dataset_id}
+          onValueChange={(v) => setForm({ ...form, dataset_id: v })}
+        >
+          <SelectTrigger>
+            <SelectValue placeholder="Select a dataset..." />
+          </SelectTrigger>
+          <SelectContent>
+            {datasets.map((d) => (
+              <SelectItem key={d.id} value={d.id}>
+                {d.name}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+
+      {/* Algorithm */}
+      <div className="space-y-1.5">
+        <Label>
+          Algorithm <span className="text-destructive">*</span>
+        </Label>
+        <Select
+          value={form.model_algorithm}
+          onValueChange={(v) => setForm({ ...form, model_algorithm: v })}
+        >
+          <SelectTrigger>
+            <SelectValue placeholder="Select an algorithm..." />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectGroup>
+              <SelectLabel>Classifiers</SelectLabel>
+              {CLASSIFIER_ALGOS.map((a) => (
+                <SelectItem key={a.value} value={a.value}>
+                  {a.label}
+                </SelectItem>
+              ))}
+            </SelectGroup>
+            <SelectGroup>
+              <SelectLabel>Regressors</SelectLabel>
+              {REGRESSOR_ALGOS.map((a) => (
+                <SelectItem key={a.value} value={a.value}>
+                  {a.label}
+                </SelectItem>
+              ))}
+            </SelectGroup>
+          </SelectContent>
+        </Select>
+      </div>
+
+      {/* Target column */}
+      <div className="space-y-1.5">
+        <Label htmlFor="target">
+          Target Column <span className="text-destructive">*</span>
+        </Label>
+        <Input
+          id="target"
+          placeholder="e.g. price, label, species"
+          value={form.target_column}
+          onChange={(e) => setForm({ ...form, target_column: e.target.value })}
+        />
+      </div>
+
+      {/* Features */}
+      <div className="space-y-1.5">
+        <Label htmlFor="features">
+          Feature Columns{" "}
+          <span className="text-muted-foreground text-xs">
+            (optional, comma-separated)
+          </span>
+        </Label>
+        <Input
+          id="features"
+          placeholder="e.g. col1, col2 — leave blank to use all"
+          value={form.features}
+          onChange={(e) => setForm({ ...form, features: e.target.value })}
+        />
+      </div>
+
+      {/* Hyperparameters */}
+      {form.model_algorithm && (
+        <div className="space-y-2 border rounded-lg p-3 bg-muted/30">
+          <div className="flex items-center justify-between">
+            <Label className="text-sm font-semibold">Hyperparameters</Label>
+            {isLoadingSchemas && (
+              <Loader2 className="w-3.5 h-3.5 animate-spin text-muted-foreground" />
+            )}
+          </div>
+          {!isLoadingSchemas && schemas.length === 0 && (
+            <p className="text-xs text-muted-foreground">
+              No configurable hyperparameters.
+            </p>
+          )}
+          {!isLoadingSchemas && schemas.length > 0 && (
+            <ScrollArea className="max-h-52 pr-2">
+              <div className="space-y-3">
+                {schemas.map((s) => (
+                  <HyperparamField
+                    key={s.name}
+                    def={s}
+                    value={hyperparams[s.name]}
+                    onChange={(v) =>
+                      setHyperparams({ ...hyperparams, [s.name]: v })
+                    }
+                  />
+                ))}
+              </div>
+            </ScrollArea>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ── Main page ──────────────────────────────────────────────────────────────
 export function ModelsPage() {
   const [models, setModels] = useState<MLModel[]>([]);
@@ -729,170 +897,6 @@ export function ModelsPage() {
     }
   };
 
-  // ── Reusable form ─────────────────────────────────────────────────────
-  const TrainFormFields = ({
-    form,
-    setForm,
-    schemas,
-    hyperparams,
-    setHyperparams,
-    isLoadingSchemas,
-  }: {
-    form: typeof EMPTY_FORM;
-    setForm: (f: typeof EMPTY_FORM) => void;
-    schemas: HyperparamDef[];
-    hyperparams: Record<string, any>;
-    setHyperparams: (h: Record<string, any>) => void;
-    isLoadingSchemas: boolean;
-  }) => (
-    <div className="grid gap-4 py-2">
-      {/* Name */}
-      <div className="space-y-1.5">
-        <Label htmlFor="model-name">
-          Model Name{" "}
-          <span className="text-muted-foreground text-xs">(optional)</span>
-        </Label>
-        <Input
-          id="model-name"
-          placeholder="e.g. House Price Predictor"
-          value={form.name}
-          onChange={(e) => setForm({ ...form, name: e.target.value })}
-        />
-      </div>
-
-      {/* Description */}
-      <div className="space-y-1.5">
-        <Label htmlFor="model-desc">
-          Description{" "}
-          <span className="text-muted-foreground text-xs">(optional)</span>
-        </Label>
-        <Input
-          id="model-desc"
-          placeholder="Short description of what this model does"
-          value={form.description}
-          onChange={(e) => setForm({ ...form, description: e.target.value })}
-        />
-      </div>
-
-      {/* Dataset */}
-      <div className="space-y-1.5">
-        <Label>
-          Dataset <span className="text-destructive">*</span>
-        </Label>
-        <Select
-          value={form.dataset_id}
-          onValueChange={(v) => setForm({ ...form, dataset_id: v })}
-        >
-          <SelectTrigger>
-            <SelectValue placeholder="Select a dataset..." />
-          </SelectTrigger>
-          <SelectContent>
-            {datasets.map((d) => (
-              <SelectItem key={d.id} value={d.id}>
-                {d.name}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </div>
-
-      {/* Algorithm */}
-      <div className="space-y-1.5">
-        <Label>
-          Algorithm <span className="text-destructive">*</span>
-        </Label>
-        <Select
-          value={form.model_algorithm}
-          onValueChange={(v) => setForm({ ...form, model_algorithm: v })}
-        >
-          <SelectTrigger>
-            <SelectValue placeholder="Select an algorithm..." />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectGroup>
-              <SelectLabel>Classifiers</SelectLabel>
-              {CLASSIFIER_ALGOS.map((a) => (
-                <SelectItem key={a.value} value={a.value}>
-                  {a.label}
-                </SelectItem>
-              ))}
-            </SelectGroup>
-            <SelectGroup>
-              <SelectLabel>Regressors</SelectLabel>
-              {REGRESSOR_ALGOS.map((a) => (
-                <SelectItem key={a.value} value={a.value}>
-                  {a.label}
-                </SelectItem>
-              ))}
-            </SelectGroup>
-          </SelectContent>
-        </Select>
-      </div>
-
-      {/* Target column */}
-      <div className="space-y-1.5">
-        <Label htmlFor="target">
-          Target Column <span className="text-destructive">*</span>
-        </Label>
-        <Input
-          id="target"
-          placeholder="e.g. price, label, species"
-          value={form.target_column}
-          onChange={(e) => setForm({ ...form, target_column: e.target.value })}
-        />
-      </div>
-
-      {/* Features */}
-      <div className="space-y-1.5">
-        <Label htmlFor="features">
-          Feature Columns{" "}
-          <span className="text-muted-foreground text-xs">
-            (optional, comma-separated)
-          </span>
-        </Label>
-        <Input
-          id="features"
-          placeholder="e.g. col1, col2 — leave blank to use all"
-          value={form.features}
-          onChange={(e) => setForm({ ...form, features: e.target.value })}
-        />
-      </div>
-
-      {/* Hyperparameters */}
-      {form.model_algorithm && (
-        <div className="space-y-2 border rounded-lg p-3 bg-muted/30">
-          <div className="flex items-center justify-between">
-            <Label className="text-sm font-semibold">Hyperparameters</Label>
-            {isLoadingSchemas && (
-              <Loader2 className="w-3.5 h-3.5 animate-spin text-muted-foreground" />
-            )}
-          </div>
-          {!isLoadingSchemas && schemas.length === 0 && (
-            <p className="text-xs text-muted-foreground">
-              No configurable hyperparameters.
-            </p>
-          )}
-          {!isLoadingSchemas && schemas.length > 0 && (
-            <ScrollArea className="max-h-52 pr-2">
-              <div className="space-y-3">
-                {schemas.map((s) => (
-                  <HyperparamField
-                    key={s.name}
-                    def={s}
-                    value={hyperparams[s.name]}
-                    onChange={(v) =>
-                      setHyperparams({ ...hyperparams, [s.name]: v })
-                    }
-                  />
-                ))}
-              </div>
-            </ScrollArea>
-          )}
-        </div>
-      )}
-    </div>
-  );
-
   // ── Render ────────────────────────────────────────────────────────────
   return (
     <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
@@ -932,6 +936,7 @@ export function ModelsPage() {
                 <TrainFormFields
                   form={trainForm}
                   setForm={setTrainForm}
+                  datasets={datasets}
                   schemas={trainSchemas}
                   hyperparams={trainHyperparams}
                   setHyperparams={setTrainHyperparams}
@@ -1429,6 +1434,7 @@ export function ModelsPage() {
             <TrainFormFields
               form={retrainForm}
               setForm={setRetrainForm}
+              datasets={datasets}
               schemas={retrainSchemas}
               hyperparams={retrainHyperparams}
               setHyperparams={setRetrainHyperparams}
