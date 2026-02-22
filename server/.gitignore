@@ -70,3 +70,9 @@ htmlcov/
 .DS_Store
 Thumbs.db
 *.db
+
+# --------------------
+# Uploaded data & trained models — never commit binary data to git
+# --------------------
+uploads/
+models/

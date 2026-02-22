@@ -30,6 +30,7 @@ class DatasetService:
         file_orm = self.file_service.get_file_by_id(db=db, id=data.file_id)
         # Convert ORM object → Pydantic FileBase (ORM mode)
         from src.modules.file.schema import FileBase as FileBaseSchema
+
         file = FileBaseSchema.model_validate(file_orm, from_attributes=True)
 
         # Compute row/column counts from the actual file

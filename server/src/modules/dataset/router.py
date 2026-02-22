@@ -18,7 +18,9 @@ def create_dataset(
     request: Request,
     data: DatasetRequest,
     db: Session = Depends(get_db),
-    token_payload: AuthToken = Depends(dataset_service.auth_service.security_service.verify_auth_token),
+    token_payload: AuthToken = Depends(
+        dataset_service.auth_service.security_service.verify_auth_token
+    ),
 ):
     return dataset_service.create_dataset(db=db, data=data, user_id=token_payload.id)
 
@@ -28,7 +30,9 @@ def get_dataset(
     request: Request,
     dataset_id: UUID,
     db: Session = Depends(get_db),
-    token_payload: AuthToken = Depends(dataset_service.auth_service.security_service.verify_auth_token),
+    token_payload: AuthToken = Depends(
+        dataset_service.auth_service.security_service.verify_auth_token
+    ),
 ):
     return dataset_service.get_dataset(db=db, dataset_id=dataset_id)
 
@@ -37,7 +41,9 @@ def get_dataset(
 def get_datasets(
     request: Request,
     db: Session = Depends(get_db),
-    token_payload: AuthToken = Depends(dataset_service.auth_service.security_service.verify_auth_token),
+    token_payload: AuthToken = Depends(
+        dataset_service.auth_service.security_service.verify_auth_token
+    ),
 ):
     return dataset_service.get_datasets(db=db, user_id=token_payload.id)
 
@@ -48,7 +54,9 @@ def update_dataset(
     dataset_id: UUID,
     data: DatasetRequest,
     db: Session = Depends(get_db),
-    token_payload: AuthToken = Depends(dataset_service.auth_service.security_service.verify_auth_token),
+    token_payload: AuthToken = Depends(
+        dataset_service.auth_service.security_service.verify_auth_token
+    ),
 ):
     return dataset_service.update_dataset(
         db=db, dataset_id=dataset_id, data=data, user_id=token_payload.id
@@ -60,7 +68,9 @@ def delete_dataset(
     request: Request,
     dataset_id: UUID,
     db: Session = Depends(get_db),
-    token_payload: AuthToken = Depends(dataset_service.auth_service.security_service.verify_auth_token),
+    token_payload: AuthToken = Depends(
+        dataset_service.auth_service.security_service.verify_auth_token
+    ),
 ):
     return dataset_service.delete_dataset(db=db, dataset_id=dataset_id, user_id=token_payload.id)
 
@@ -71,7 +81,9 @@ def clean_dataset(
     dataset_id: UUID,
     data: DatasetCleanRequest,
     db: Session = Depends(get_db),
-    token_payload: AuthToken = Depends(dataset_service.auth_service.security_service.verify_auth_token),
+    token_payload: AuthToken = Depends(
+        dataset_service.auth_service.security_service.verify_auth_token
+    ),
 ):
     return dataset_service.clean_dataset(
         db=db, dataset_id=dataset_id, data=data, user_id=token_payload.id
@@ -84,7 +96,9 @@ def transform_dataset(
     dataset_id: UUID,
     data: DatasetTransformRequest,
     db: Session = Depends(get_db),
-    token_payload: AuthToken = Depends(dataset_service.auth_service.security_service.verify_auth_token),
+    token_payload: AuthToken = Depends(
+        dataset_service.auth_service.security_service.verify_auth_token
+    ),
 ):
     return dataset_service.transform_dataset(
         db=db, dataset_id=dataset_id, data=data, user_id=token_payload.id

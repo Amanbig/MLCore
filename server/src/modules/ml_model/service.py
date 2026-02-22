@@ -85,24 +85,85 @@ class MLModelService:
         model = None
         algo = data.model_algorithm.lower()
 
-        if algo in ["randomforestclassifier", "random_forest"]:
+        if algo in ["random_forest_classifier", "randomforestclassifier", "random_forest"]:
             from sklearn.ensemble import RandomForestClassifier
 
             model = RandomForestClassifier(**data.hyperparameters)
-        elif algo in ["randomforestregressor"]:
+
+        elif algo in ["random_forest_regressor", "randomforestregressor"]:
             from sklearn.ensemble import RandomForestRegressor
 
             model = RandomForestRegressor(**data.hyperparameters)
-        elif algo in ["logisticregression", "logistic_regression"]:
+
+        elif algo in ["logistic_regression", "logisticregression"]:
             from sklearn.linear_model import LogisticRegression
 
             model = LogisticRegression(**data.hyperparameters)
-        elif algo in ["linearregression", "linear_regression"]:
+
+        elif algo in ["linear_regression", "linearregression"]:
             from sklearn.linear_model import LinearRegression
 
             model = LinearRegression(**data.hyperparameters)
+
+        elif algo in ["ridge", "ridge_regression"]:
+            from sklearn.linear_model import Ridge
+
+            model = Ridge(**data.hyperparameters)
+
+        elif algo in ["lasso", "lasso_regression"]:
+            from sklearn.linear_model import Lasso
+
+            model = Lasso(**data.hyperparameters)
+
+        elif algo in ["svm", "svc", "support_vector_machine"]:
+            from sklearn.svm import SVC
+
+            model = SVC(**data.hyperparameters)
+
+        elif algo in ["svr", "support_vector_regressor"]:
+            from sklearn.svm import SVR
+
+            model = SVR(**data.hyperparameters)
+
+        elif algo in ["decision_tree", "decision_tree_classifier", "decisiontreeclassifier"]:
+            from sklearn.tree import DecisionTreeClassifier
+
+            model = DecisionTreeClassifier(**data.hyperparameters)
+
+        elif algo in ["decision_tree_regressor", "decisiontreeregressor"]:
+            from sklearn.tree import DecisionTreeRegressor
+
+            model = DecisionTreeRegressor(**data.hyperparameters)
+
+        elif algo in [
+            "gradient_boosting",
+            "gradient_boosting_classifier",
+            "gradientboostingclassifier",
+        ]:
+            from sklearn.ensemble import GradientBoostingClassifier
+
+            model = GradientBoostingClassifier(**data.hyperparameters)
+
+        elif algo in ["gradient_boosting_regressor", "gradientboostingregressor"]:
+            from sklearn.ensemble import GradientBoostingRegressor
+
+            model = GradientBoostingRegressor(**data.hyperparameters)
+
+        elif algo in ["knn", "kneighbors", "k_nearest_neighbors"]:
+            from sklearn.neighbors import KNeighborsClassifier
+
+            model = KNeighborsClassifier(**data.hyperparameters)
+
+        elif algo in ["naive_bayes", "gaussiannb", "gaussian_naive_bayes"]:
+            from sklearn.naive_bayes import GaussianNB
+
+            model = GaussianNB(**data.hyperparameters)
+
         else:
-            raise HTTPException(status_code=400, detail="Unsupported model algorithm")
+            raise HTTPException(
+                status_code=400,
+                detail=f"Unsupported algorithm: '{data.model_algorithm}'. Supported: random_forest_classifier, random_forest_regressor, logistic_regression, linear_regression, ridge, lasso, svm, svr, decision_tree, decision_tree_regressor, gradient_boosting, gradient_boosting_regressor, knn, naive_bayes",
+            )
 
         try:
             model.fit(X_train, y_train)
