@@ -90,8 +90,8 @@ export function ModelsPage() {
 		try {
 			setIsLoading(true);
 			const [modelsRes, datasetsRes] = await Promise.all([
-				api.get("/ml_model"),
-				api.get("/dataset"),
+				api.get("/ml_models"),   // plural — backend route is GET /ml_models
+				api.get("/datasets"),    // plural — backend route is GET /datasets
 			]);
 			setModels(modelsRes.data || []);
 			setDatasets(datasetsRes.data || []);
@@ -132,9 +132,9 @@ export function ModelsPage() {
 				target_column: trainForm.target_column,
 				features: trainForm.features
 					? trainForm.features
-							.split(",")
-							.map((f) => f.trim())
-							.filter(Boolean)
+						.split(",")
+						.map((f) => f.trim())
+						.filter(Boolean)
 					: null,
 				hyperparameters,
 			});

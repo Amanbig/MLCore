@@ -21,10 +21,10 @@ class Security:
         self.cookie_manager = CookieManager(
             payload={
                 "httponly": True,
-                "secure": True,
+                "secure": settings.APP_ENV == "production",  # False on localhost (HTTP)
                 "path": "/",
                 "max_age": 60 * 60 * 24 * 7,
-                "samesite": "lax" if settings.APP_ENV == "production" else None,
+                "samesite": "lax" if settings.APP_ENV == "production" else "lax",
                 "domain": settings.COOKIE_DOMAIN if settings.APP_ENV == "production" else None,
             }
         )

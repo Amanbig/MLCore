@@ -20,7 +20,7 @@ def train_model(
     request: Request,
     data: TrainModelRequest,
     db: Session = Depends(get_db),
-    token_payload: AuthToken = Depends(auth_service.verify_token),
+    token_payload: AuthToken = Depends(auth_service.security_service.verify_auth_token),
 ):
     return ml_model_service.train_model(db=db, data=data, user_id=token_payload.id)
 
@@ -31,7 +31,7 @@ def retrain_model(
     model_id: UUID,
     data: TrainModelRequest,
     db: Session = Depends(get_db),
-    token_payload: AuthToken = Depends(auth_service.verify_token),
+    token_payload: AuthToken = Depends(auth_service.security_service.verify_auth_token),
 ):
     return ml_model_service.retrain_model(
         db=db, model_id=model_id, data=data, user_id=token_payload.id
@@ -44,7 +44,7 @@ def create_model(
     file: UploadFile = File(...),
     data: CreateMLModelRequest = Depends(),
     db: Session = Depends(get_db),
-    token_payload: AuthToken = Depends(auth_service.verify_token),
+    token_payload: AuthToken = Depends(auth_service.security_service.verify_auth_token),
 ):
     return ml_model_service.create_model(db=db, data=data, file=file, user_id=token_payload.id)
 
@@ -54,7 +54,7 @@ def get_model(
     request: Request,
     model_id: UUID,
     db: Session = Depends(get_db),
-    token_payload: AuthToken = Depends(auth_service.verify_token),
+    token_payload: AuthToken = Depends(auth_service.security_service.verify_auth_token),
 ):
     return ml_model_service.get_model(db=db, model_id=model_id)
 
@@ -64,7 +64,7 @@ def get_model_versions(
     request: Request,
     model_id: UUID,
     db: Session = Depends(get_db),
-    token_payload: AuthToken = Depends(auth_service.verify_token),
+    token_payload: AuthToken = Depends(auth_service.security_service.verify_auth_token),
 ):
     return ml_model_service.get_model_versions(db=db, model_id=model_id)
 
@@ -73,7 +73,7 @@ def get_model_versions(
 def get_models(
     request: Request,
     db: Session = Depends(get_db),
-    token_payload: AuthToken = Depends(auth_service.verify_token),
+    token_payload: AuthToken = Depends(auth_service.security_service.verify_auth_token),
 ):
     return ml_model_service.get_models(db=db)
 
@@ -85,7 +85,7 @@ def update_model(
     file: UploadFile = File(None),
     data: CreateMLModelRequest = Depends(),
     db: Session = Depends(get_db),
-    token_payload: AuthToken = Depends(auth_service.verify_token),
+    token_payload: AuthToken = Depends(auth_service.security_service.verify_auth_token),
 ):
     return ml_model_service.update_model(
         db=db, model_id=model_id, data=data, file=file, user_id=token_payload.id
@@ -97,6 +97,6 @@ def delete_model(
     request: Request,
     model_id: UUID,
     db: Session = Depends(get_db),
-    token_payload: AuthToken = Depends(auth_service.verify_token),
+    token_payload: AuthToken = Depends(auth_service.security_service.verify_auth_token),
 ):
     return ml_model_service.delete_model(db=db, model_id=model_id)

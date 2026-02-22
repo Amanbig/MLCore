@@ -43,8 +43,15 @@ interface Dataset {
 	id: string;
 	name: string;
 	version: string;
-	file_type: string;
+	description: string;
+	rows: number;
+	columns: number;
 	created_at: string;
+	file: {
+		file_type: string;
+		name: string;
+		size: string;
+	};
 }
 
 export function DatasetsPage() {
@@ -58,7 +65,7 @@ export function DatasetsPage() {
 	const fetchDatasets = async () => {
 		try {
 			setIsLoading(true);
-			const res = await api.get("/dataset");
+			const res = await api.get("/datasets"); // plural — backend route is GET /datasets
 			setDatasets(res.data || []);
 		} catch (error: any) {
 			if (error.response?.status !== 401) {
@@ -87,14 +94,24 @@ export function DatasetsPage() {
 
 		try {
 			setIsUploading(true);
+
+			// Step 1: upload the raw file to /file (multipart)
 			const formData = new FormData();
 			formData.append("file", selectedFile);
-			formData.append("name", selectedFile.name);
-			formData.append("description", "Uploaded via web interface");
-			formData.append("source", "User Upload");
-
-			await api.post("/dataset", formData, {
+			const fileRes = await api.post("/file", formData, {
 				headers: { "Content-Type": "multipart/form-data" },
+			});
+			const fileId: string = fileRes.data.id;
+			const fileType: string = fileRes.data.file_type;
+
+			// Step 2: create the dataset record referencing the uploaded file
+			await api.post("/dataset", {
+				name: selectedFile.name.replace(/\.[^.]+$/, ""), // strip extension
+				description: "Uploaded via web interface",
+				file_id: fileId,
+				rows: 0,      // backend may compute this; pass 0 as placeholder
+				columns: 0,   // same
+				dataset_metadata: { file_type: fileType },
 			});
 
 			toast.success("Dataset uploaded successfully!");
@@ -253,7 +270,7 @@ export function DatasetsPage() {
 											v{ds.version}
 										</Badge>
 										<span className="uppercase text-muted-foreground">
-											{ds.file_type}
+											{ds.file?.file_type ?? "—"}
 										</span>
 									</CardDescription>
 								</div>
