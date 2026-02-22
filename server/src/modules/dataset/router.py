@@ -103,3 +103,18 @@ def transform_dataset(
     return dataset_service.transform_dataset(
         db=db, dataset_id=dataset_id, data=data, user_id=token_payload.id
     )
+
+
+@router.post("/dataset/{dataset_id}/refresh")
+def refresh_dataset_metadata(
+    request: Request,
+    dataset_id: UUID,
+    db: Session = Depends(get_db),
+    token_payload: AuthToken = Depends(
+        dataset_service.auth_service.security_service.verify_auth_token
+    ),
+):
+    """Recompute rows, columns, and metadata from the physical file."""
+    return dataset_service.refresh_dataset_metadata(
+        db=db, dataset_id=dataset_id, user_id=token_payload.id
+    )

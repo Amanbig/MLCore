@@ -73,6 +73,20 @@ class DatasetService:
         return dataset
 
     @log_execution
+    def refresh_dataset_metadata(self, db: Session, dataset_id: UUID, user_id: UUID):
+        """Recompute rows, columns, and dataset_metadata from the physical file."""
+        dataset = self.repo.get_by_id(db=db, id=dataset_id)
+        if dataset.user_id != user_id:
+            raise HTTPException(status_code=403, detail="Not authorized")
+        metadata = self.get_dataset_params_details(db=db, file_id=dataset.file_id)
+        dataset.rows = metadata["shape"]["rows"]
+        dataset.columns = metadata["shape"]["columns"]
+        dataset.dataset_metadata = metadata
+        db.commit()
+        db.refresh(dataset)
+        return dataset
+
+    @log_execution
     def get_datasets(self, db: Session, user_id: UUID) -> List[DatasetResponse]:
         return self.repo.get(db=db, filters={"user_id": user_id})
 
@@ -257,21 +271,32 @@ class DatasetService:
 
     @log_execution
     def get_dataset_params_details(self, db: Session, file_id: UUID):
+        import os
+
         file = self.file_service.get_file_by_id(db=db, id=file_id)
+
+        # Resolve the path the same way as _load_dataframe — handle leading slash on Windows
+        loc = file.location
+        if not os.path.exists(loc):
+            loc = os.path.join(os.getcwd(), loc.lstrip("/").lstrip("\\"))
+        if not os.path.exists(loc):
+            raise HTTPException(status_code=404, detail=f"Physical file not found: {file.location}")
+
         if file.file_type == "csv":
-            dataset = pd.read_csv(file.location)
-        elif file.file_type == "xlsx":
-            dataset = pd.read_excel(file.location)
+            dataset = pd.read_csv(loc)
+        elif file.file_type in ["xls", "xlsx"]:
+            dataset = pd.read_excel(loc)
+        else:
+            raise HTTPException(
+                status_code=400, detail=f"Unsupported file format: {file.file_type}"
+            )
 
         return {
             "shape": {
                 "rows": dataset.shape[0],
                 "columns": dataset.shape[1],
             },
-            # "columns": dataset.columns.tolist(),
             "dtypes": dataset.dtypes.astype(str).to_dict(),
-            # "numeric_columns": numeric_cols,
-            # "categorical_columns": categorical_cols,
             "missing_values": dataset.isnull().sum().to_dict(),
             "missing_percentage": (dataset.isnull().mean() * 100).round(2).to_dict(),
             "statistics": dataset.describe().to_dict(),

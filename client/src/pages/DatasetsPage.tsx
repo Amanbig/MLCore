@@ -53,6 +53,7 @@ import {
 	BarChart3,
 	Filter,
 	Sigma,
+	RotateCcw,
 } from "lucide-react";
 import { api } from "@/lib/api";
 import { toast } from "sonner";
@@ -178,6 +179,17 @@ export function DatasetsPage() {
 			setDatasets((prev) => prev.filter((d) => d.id !== id));
 		} catch (error: any) {
 			toast.error(error.response?.data?.detail || "Delete failed");
+		}
+	};
+
+	const handleRefresh = async (id: string, name: string) => {
+		try {
+			toast.info(`Refreshing "${name}"...`);
+			await api.post(`/dataset/${id}/refresh`);
+			toast.success(`"${name}" metadata refreshed!`);
+			await fetchDatasets();
+		} catch (error: any) {
+			toast.error(error.response?.data?.detail || "Refresh failed");
 		}
 	};
 
