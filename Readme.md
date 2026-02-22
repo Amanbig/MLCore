@@ -28,7 +28,7 @@ docker run -d \
   -v mlcore-db:/app/server \
   -v mlcore-uploads:/app/server/uploads \
   --name mlcore \
-  YOUR_DOCKERHUB_USERNAME/mlcore:latest
+  procoder588/mlcore:latest
 
 # GitHub Container Registry
 docker run -d \
@@ -36,7 +36,7 @@ docker run -d \
   -v mlcore-db:/app/server \
   -v mlcore-uploads:/app/server/uploads \
   --name mlcore \
-  ghcr.io/YOUR_GITHUB_USERNAME/mlcore:latest
+  ghcr.io/Amanbig/mlcore:latest
 ```
 
 Open **http://localhost:8000** — UI and API both served from the same port.
