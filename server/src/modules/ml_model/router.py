@@ -1,6 +1,6 @@
 from uuid import UUID
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Request
 from sqlalchemy.orm import Session
 
 from src.common.db.session import get_db
@@ -17,6 +17,7 @@ auth_service = AuthService()
 
 @router.post("/ml_model/train")
 def train_model(
+    request: Request,
     data: TrainModelRequest,
     db: Session = Depends(get_db),
     token_payload: AuthToken = Depends(auth_service.verify_token),
@@ -26,6 +27,7 @@ def train_model(
 
 @router.post("/ml_model")
 def create_model(
+    request: Request,
     data: CreateMLModelRequest = Depends(),
     db: Session = Depends(get_db),
     token_payload: AuthToken = Depends(auth_service.verify_token),
@@ -35,6 +37,7 @@ def create_model(
 
 @router.get("/ml_model/{model_id}")
 def get_model(
+    request: Request,
     model_id: UUID,
     db: Session = Depends(get_db),
     token_payload: AuthToken = Depends(auth_service.verify_token),
@@ -44,6 +47,7 @@ def get_model(
 
 @router.get("/ml_models")
 def get_models(
+    request: Request,
     db: Session = Depends(get_db),
     token_payload: AuthToken = Depends(auth_service.verify_token),
 ):
@@ -52,6 +56,7 @@ def get_models(
 
 @router.put("/ml_model/{model_id}")
 def update_model(
+    request: Request,
     model_id: UUID,
     data: CreateMLModelRequest = Depends(),
     db: Session = Depends(get_db),
@@ -62,6 +67,7 @@ def update_model(
 
 @router.delete("/ml_model/{model_id}")
 def delete_model(
+    request: Request,
     model_id: UUID,
     db: Session = Depends(get_db),
     token_payload: AuthToken = Depends(auth_service.verify_token),

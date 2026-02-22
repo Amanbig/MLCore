@@ -1,6 +1,6 @@
 from uuid import UUID
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Request
 from sqlalchemy.orm import Session
 
 from src.common.db.session import get_db
@@ -15,6 +15,7 @@ dataset_service = DatasetService()
 
 @router.post("/dataset")
 def create_dataset(
+    request: Request,
     data: DatasetRequest,
     db: Session = Depends(get_db),
     token_payload: AuthToken = Depends(dataset_service.auth_service.verify_token),
@@ -24,6 +25,7 @@ def create_dataset(
 
 @router.get("/dataset/{dataset_id}")
 def get_dataset(
+    request: Request,
     dataset_id: UUID,
     db: Session = Depends(get_db),
     token_payload: AuthToken = Depends(dataset_service.auth_service.verify_token),
@@ -33,6 +35,7 @@ def get_dataset(
 
 @router.get("/datasets")
 def get_datasets(
+    request: Request,
     db: Session = Depends(get_db),
     token_payload: AuthToken = Depends(dataset_service.auth_service.verify_token),
 ):
@@ -41,6 +44,7 @@ def get_datasets(
 
 @router.put("/dataset/{dataset_id}")
 def update_dataset(
+    request: Request,
     dataset_id: UUID,
     data: DatasetRequest,
     db: Session = Depends(get_db),
@@ -53,6 +57,7 @@ def update_dataset(
 
 @router.delete("/dataset/{dataset_id}")
 def delete_dataset(
+    request: Request,
     dataset_id: UUID,
     db: Session = Depends(get_db),
     token_payload: AuthToken = Depends(dataset_service.auth_service.verify_token),

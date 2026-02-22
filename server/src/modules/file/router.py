@@ -1,6 +1,6 @@
 from uuid import UUID
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Request
 from sqlalchemy.orm import Session
 
 from src.common.db.session import get_db
@@ -17,6 +17,7 @@ auth_service = AuthService()
 
 @router.post("/file")
 def create_file(
+    request: Request,
     data: FileCreate = Depends(),
     db: Session = Depends(get_db),
     token_payload: AuthToken = Depends(auth_service.verify_token),
@@ -26,6 +27,7 @@ def create_file(
 
 @router.get("/file/{file_id}")
 def get_file(
+    request: Request,
     file_id: UUID,
     db: Session = Depends(get_db),
     token_payload: AuthToken = Depends(auth_service.verify_token),
@@ -35,6 +37,7 @@ def get_file(
 
 @router.get("/files")
 def get_files(
+    request: Request,
     db: Session = Depends(get_db),
     token_payload: AuthToken = Depends(auth_service.verify_token),
 ):
@@ -43,6 +46,7 @@ def get_files(
 
 @router.delete("/file/{file_id}")
 def delete_file(
+    request: Request,
     file_id: UUID,
     db: Session = Depends(get_db),
     token_payload: AuthToken = Depends(auth_service.verify_token),
