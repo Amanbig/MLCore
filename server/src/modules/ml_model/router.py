@@ -6,7 +6,7 @@ from sqlalchemy.orm import Session
 from src.common.db.session import get_db
 from src.modules.auth.schema import AuthToken
 from src.modules.auth.service import AuthService
-from src.modules.ml_model.schema import CreateMLModelRequest, TrainModelRequest
+from src.modules.ml_model.schema import CreateMLModelRequest, PredictRequest, TrainModelRequest
 from src.modules.ml_model.service import MLModelService
 from src.modules.ml_model.utils.hyperparams import get_hyperparams
 
@@ -34,6 +34,29 @@ def get_hyperparameters(
 ):
     """Return the hyperparameter schema for a given algorithm."""
     return {"algorithm": algorithm, "hyperparameters": get_hyperparams(algorithm)}
+
+
+@router.get("/ml_model/{model_id}/download")
+def download_model(
+    request: Request,
+    model_id: UUID,
+    db: Session = Depends(get_db),
+    token_payload: AuthToken = Depends(auth_service.security_service.verify_auth_token),
+):
+    """Stream the trained .joblib file for download."""
+    return ml_model_service.download_model(db=db, model_id=model_id, user_id=token_payload.id)
+
+
+@router.post("/ml_model/{model_id}/predict")
+def predict(
+    request: Request,
+    model_id: UUID,
+    data: PredictRequest,
+    db: Session = Depends(get_db),
+    token_payload: AuthToken = Depends(auth_service.security_service.verify_auth_token),
+):
+    """Run inference on a trained model."""
+    return ml_model_service.predict(db=db, model_id=model_id, data=data, user_id=token_payload.id)
 
 
 @router.post("/ml_model/{model_id}/retrain")

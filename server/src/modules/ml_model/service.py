@@ -1,3 +1,5 @@
+import ast
+import json
 import os
 from typing import List
 from uuid import UUID, uuid4
@@ -5,6 +7,7 @@ from uuid import UUID, uuid4
 import joblib
 import pandas as pd
 from fastapi import HTTPException, UploadFile
+from fastapi.responses import FileResponse
 from sqlalchemy.orm import Session
 
 from src.common.logging.logger import log_execution
@@ -13,6 +16,8 @@ from src.modules.file import FileService
 from src.modules.ml_model.schema import (
     CreateMLModelRequest,
     CreateMLModelResponse,
+    PredictRequest,
+    PredictResponse,
     TrainModelRequest,
 )
 from src.modules.ml_model.store import MLModelRepository
@@ -334,3 +339,100 @@ class MLModelService:
         # Delete model DB record
         self.repo.delete(db=db, id=model_id)
         return {"detail": "Model deleted successfully", "id": str(model_id)}
+
+    @log_execution
+    def download_model(self, db: Session, model_id: UUID, user_id: UUID) -> FileResponse:
+        model = self.repo.get_by_id(db=db, id=model_id)
+        if not model:
+            raise HTTPException(status_code=404, detail="Model not found")
+        if model.user_id != user_id:
+            raise HTTPException(status_code=403, detail="Not authorized")
+
+        file = self.file_service.get_file_by_id(db=db, id=model.file_id)
+        loc = file.location
+        if not os.path.exists(loc):
+            loc = os.path.join(os.getcwd(), loc.lstrip("/").lstrip("\\"))
+        if not os.path.exists(loc):
+            raise HTTPException(status_code=404, detail="Model file not found on disk")
+
+        filename = f"{model.name.replace(' ', '_')}_v{model.version}.joblib"
+        return FileResponse(
+            path=loc,
+            media_type="application/octet-stream",
+            filename=filename,
+        )
+
+    @log_execution
+    def predict(
+        self, db: Session, model_id: UUID, data: PredictRequest, user_id: UUID
+    ) -> PredictResponse:
+        model_record = self.repo.get_by_id(db=db, id=model_id)
+        if not model_record:
+            raise HTTPException(status_code=404, detail="Model not found")
+        if model_record.user_id != user_id:
+            raise HTTPException(status_code=403, detail="Not authorized")
+
+        # Resolve feature column list stored as a Python-repr string or JSON
+        try:
+            stored_inputs = model_record.inputs
+            # Try JSON first, then ast.literal_eval for Python list repr
+            try:
+                feature_cols: list[str] = json.loads(stored_inputs)
+            except (json.JSONDecodeError, TypeError):
+                feature_cols = ast.literal_eval(stored_inputs)
+        except Exception:
+            raise HTTPException(
+                status_code=500,
+                detail=f"Could not parse model input schema: {model_record.inputs}",
+            )
+
+        # Validate all required features are provided
+        missing = [f for f in feature_cols if f not in data.inputs]
+        if missing:
+            raise HTTPException(
+                status_code=422,
+                detail=f"Missing required feature(s): {missing}",
+            )
+
+        # Build DataFrame in the same column order as training
+        row = {col: [data.inputs[col]] for col in feature_cols}
+        X = pd.DataFrame(row)
+
+        # Load model from disk
+        file = self.file_service.get_file_by_id(db=db, id=model_record.file_id)
+        loc = file.location
+        if not os.path.exists(loc):
+            loc = os.path.join(os.getcwd(), loc.lstrip("/").lstrip("\\"))
+        if not os.path.exists(loc):
+            raise HTTPException(status_code=404, detail="Model file not found on disk")
+
+        try:
+            sklearn_model = joblib.load(loc)
+        except Exception as e:
+            raise HTTPException(status_code=500, detail=f"Failed to load model: {e}")
+
+        try:
+            predictions = sklearn_model.predict(X).tolist()
+        except Exception as e:
+            raise HTTPException(status_code=500, detail=f"Prediction failed: {e}")
+
+        # Probabilities for classifiers
+        probabilities = None
+        if hasattr(sklearn_model, "predict_proba"):
+            try:
+                proba = sklearn_model.predict_proba(X)
+                classes = [str(c) for c in sklearn_model.classes_]
+                probabilities = [
+                    {cls: round(float(p), 4) for cls, p in zip(classes, row_proba)}
+                    for row_proba in proba
+                ]
+            except Exception:
+                pass
+
+        return PredictResponse(
+            model_id=str(model_id),
+            model_type=model_record.model_type,
+            target=model_record.outputs,
+            predictions=predictions,
+            probabilities=probabilities,
+        )

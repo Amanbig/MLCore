@@ -1,4 +1,6 @@
+from typing import Any
 from uuid import UUID
+
 from pydantic import BaseModel
 
 
@@ -41,3 +43,20 @@ class TrainModelRequest(BaseModel):
 
 class TrainModelResponse(MLModelBase):
     detail: str
+
+
+class PredictRequest(BaseModel):
+    """
+    inputs: dict mapping each feature name → value.
+    Example: {"sepal_length": 5.1, "sepal_width": 3.5}
+    """
+
+    inputs: dict[str, Any]
+
+
+class PredictResponse(BaseModel):
+    model_id: str
+    model_type: str
+    target: str
+    predictions: list[Any]
+    probabilities: list[dict[str, float]] | None = None

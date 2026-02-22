@@ -64,6 +64,9 @@ import {
   TrendingUp,
   TrendingDown,
   Info,
+  Download,
+  TestTube2,
+  CheckCircle2,
 } from "lucide-react";
 import { api } from "@/lib/api";
 import { toast } from "sonner";
@@ -82,6 +85,8 @@ interface MLModel {
   accuracy: number;
   error: number;
   description: string;
+  inputs: string; // stored as Python list repr e.g. "['col1','col2']"
+  outputs: string; // target column name
   parent_id: string | null;
   created_at?: string;
 }
@@ -233,6 +238,117 @@ function HyperparamField({
   );
 }
 
+// ── PredictInputs ──────────────────────────────────────────────────────────
+function PredictInputs({
+  inputs,
+  onChange,
+}: {
+  inputs: Record<string, string>;
+  onChange: (col: string, val: string) => void;
+}) {
+  const [filter, setFilter] = useState("");
+  const cols = Object.keys(inputs);
+  const filtered = filter
+    ? cols.filter((c) => c.toLowerCase().includes(filter.toLowerCase()))
+    : cols;
+
+  if (cols.length === 0)
+    return (
+      <p className="text-sm text-muted-foreground text-center py-6">
+        No feature columns found for this model.
+      </p>
+    );
+
+  return (
+    <div className="py-2 space-y-3">
+      {/* Search — only shown when there are many features */}
+      {cols.length > 6 && (
+        <div className="relative">
+          <Input
+            className="h-8 text-sm pl-8"
+            placeholder={`Filter ${cols.length} features…`}
+            value={filter}
+            onChange={(e) => setFilter(e.target.value)}
+          />
+          <svg
+            className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M21 21l-4.35-4.35M17 11A6 6 0 1 1 5 11a6 6 0 0 1 12 0z"
+            />
+          </svg>
+        </div>
+      )}
+
+      {/* Fill-all helpers */}
+      <div className="flex items-center justify-between text-xs text-muted-foreground">
+        <span>
+          {filtered.length} of {cols.length} shown
+        </span>
+        <button
+          type="button"
+          className="text-muted-foreground hover:text-destructive"
+          onClick={() => cols.forEach((c) => onChange(c, ""))}
+        >
+          Clear all
+        </button>
+      </div>
+
+      {/* Two-column grid */}
+      <div className="grid grid-cols-2 gap-x-4 gap-y-2.5">
+        {filtered.map((col) => (
+          <div key={col} className="space-y-1">
+            <Label
+              className="text-[11px] font-mono text-muted-foreground truncate block"
+              title={col}
+            >
+              {col}
+            </Label>
+            <Input
+              className="h-7 text-xs"
+              placeholder="value"
+              value={inputs[col]}
+              onChange={(e) => onChange(col, e.target.value)}
+            />
+          </div>
+        ))}
+      </div>
+
+      {filtered.length === 0 && (
+        <p className="text-xs text-muted-foreground text-center py-2">
+          No features match "{filter}"
+        </p>
+      )}
+    </div>
+  );
+}
+
+/** Parse the server's stored inputs string (Python list repr or JSON) into a string array. */
+function parseInputCols(inputs: string | undefined | null): string[] {
+  if (!inputs) return [];
+  try {
+    const parsed = JSON.parse(inputs);
+    if (Array.isArray(parsed)) return parsed.map(String);
+  } catch {}
+  // Python list repr: "['col1', 'col2']"
+  try {
+    const cleaned = inputs
+      .replace(/^\[/, "")
+      .replace(/\]$/, "")
+      .split(",")
+      .map((s) => s.trim().replace(/^['"]|['"]$/g, ""))
+      .filter(Boolean);
+    return cleaned;
+  } catch {}
+  return [];
+}
+
 // ── Main page ──────────────────────────────────────────────────────────────
 export function ModelsPage() {
   const [models, setModels] = useState<MLModel[]>([]);
@@ -267,6 +383,21 @@ export function ModelsPage() {
   // Delete confirm
   const [deleteModel, setDeleteModel] = useState<MLModel | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
+
+  // Predict (test) dialog
+  const [predictModel, setPredictModel] = useState<MLModel | null>(null);
+  const [predictInputs, setPredictInputs] = useState<Record<string, string>>(
+    {},
+  );
+  const [isPredicting, setIsPredicting] = useState(false);
+  const [predictResult, setPredictResult] = useState<{
+    predictions: any[];
+    probabilities: { [cls: string]: number }[] | null;
+    target: string;
+  } | null>(null);
+
+  // Download state (per-model loading indicator)
+  const [downloadingId, setDownloadingId] = useState<string | null>(null);
 
   // ── fetch helpers ────────────────────────────────────────────────────
   const fetchData = async () => {
@@ -452,6 +583,73 @@ export function ModelsPage() {
       toast.error(error.response?.data?.detail || "Delete failed");
     } finally {
       setIsDeleting(false);
+    }
+  };
+
+  const handleDownload = async (model: MLModel) => {
+    try {
+      setDownloadingId(model.id);
+      const res = await api.get(`/ml_model/${model.id}/download`, {
+        responseType: "blob",
+      });
+      const url = window.URL.createObjectURL(new Blob([res.data]));
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `${model.name.replace(/\s+/g, "_")}_v${model.version}.joblib`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      window.URL.revokeObjectURL(url);
+      toast.success("Model downloaded");
+    } catch (error: any) {
+      toast.error(error.response?.data?.detail || "Download failed");
+    } finally {
+      setDownloadingId(null);
+    }
+  };
+
+  const openPredict = (model: MLModel) => {
+    // Parse stored inputs string into feature list
+    const featureCols = parseInputCols(model.inputs);
+    const initial: Record<string, string> = {};
+    featureCols.forEach((col) => {
+      initial[col] = "";
+    });
+    setPredictInputs(initial);
+    setPredictResult(null);
+    setPredictModel(model);
+  };
+
+  const handlePredict = async () => {
+    if (!predictModel) return;
+    // Validate all inputs filled
+    const empty = Object.entries(predictInputs).filter(
+      ([, v]) => v.trim() === "",
+    );
+    if (empty.length > 0) {
+      toast.error(`Fill in: ${empty.map(([k]) => k).join(", ")}`);
+      return;
+    }
+    // Convert string values to numbers where possible
+    const coerced: Record<string, any> = {};
+    Object.entries(predictInputs).forEach(([k, v]) => {
+      const num = Number(v);
+      coerced[k] = isNaN(num) ? v : num;
+    });
+    try {
+      setIsPredicting(true);
+      const res = await api.post(`/ml_model/${predictModel.id}/predict`, {
+        inputs: coerced,
+      });
+      setPredictResult({
+        predictions: res.data.predictions,
+        probabilities: res.data.probabilities,
+        target: res.data.target,
+      });
+    } catch (error: any) {
+      toast.error(error.response?.data?.detail || "Prediction failed");
+    } finally {
+      setIsPredicting(false);
     }
   };
 
@@ -724,6 +922,25 @@ export function ModelsPage() {
                   <DropdownMenuContent align="end">
                     <DropdownMenuItem
                       className="gap-2"
+                      onClick={() => openPredict(model)}
+                    >
+                      <TestTube2 className="w-4 h-4" /> Test / Predict
+                    </DropdownMenuItem>
+                    <DropdownMenuItem
+                      className="gap-2"
+                      onClick={() => handleDownload(model)}
+                      disabled={downloadingId === model.id}
+                    >
+                      {downloadingId === model.id ? (
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                      ) : (
+                        <Download className="w-4 h-4" />
+                      )}{" "}
+                      Download .joblib
+                    </DropdownMenuItem>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem
+                      className="gap-2"
                       onClick={() => openRetrain(model)}
                     >
                       <FlaskConical className="w-4 h-4" /> Retrain
@@ -789,7 +1006,15 @@ export function ModelsPage() {
                 <Button
                   variant="ghost"
                   size="sm"
-                  className="flex-1 gap-2 text-muted-foreground hover:text-primary"
+                  className="flex-1 gap-1.5 text-muted-foreground hover:text-primary"
+                  onClick={() => openPredict(model)}
+                >
+                  <TestTube2 className="w-4 h-4" /> Test
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="flex-1 gap-1.5 text-muted-foreground hover:text-primary"
                   onClick={() => openRetrain(model)}
                 >
                   <FlaskConical className="w-4 h-4" /> Retrain
@@ -797,10 +1022,15 @@ export function ModelsPage() {
                 <Button
                   variant="ghost"
                   size="sm"
-                  className="flex-1 gap-2 text-muted-foreground hover:text-primary"
-                  onClick={() => openLineage(model)}
+                  className="gap-1.5 text-muted-foreground hover:text-primary px-2"
+                  onClick={() => handleDownload(model)}
+                  disabled={downloadingId === model.id}
                 >
-                  <GitBranch className="w-4 h-4" /> Lineage
+                  {downloadingId === model.id ? (
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  ) : (
+                    <Download className="w-4 h-4" />
+                  )}
                 </Button>
               </CardFooter>
             </Card>
@@ -848,6 +1078,169 @@ export function ModelsPage() {
               )}
             </Button>
           </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* ── Predict / Test Dialog ─────────────────────────────── */}
+      <Dialog
+        open={!!predictModel}
+        onOpenChange={(o) => {
+          if (!o) {
+            setPredictModel(null);
+            setPredictResult(null);
+            setPredictInputs({});
+          }
+        }}
+      >
+        <DialogContent className="sm:max-w-[520px] flex flex-col max-h-[85vh] p-0 overflow-hidden">
+          <DialogHeader className="shrink-0 p-6 pb-3">
+            <DialogTitle className="flex items-center gap-2">
+              <TestTube2 className="w-5 h-5" /> Test — {predictModel?.name}
+              <Badge variant="secondary" className="ml-auto text-xs font-mono">
+                {Object.keys(predictInputs).length} feature
+                {Object.keys(predictInputs).length !== 1 ? "s" : ""}
+              </Badge>
+            </DialogTitle>
+            <DialogDescription>
+              Enter feature values to run a single-row prediction. Target:{" "}
+              <span className="font-medium text-foreground">
+                {predictModel?.outputs}
+              </span>
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="flex-1 overflow-y-auto px-6 pb-2">
+            {/* Input fields */}
+            {!predictResult ? (
+              <PredictInputs
+                inputs={predictInputs}
+                onChange={(col, val) =>
+                  setPredictInputs((prev) => ({ ...prev, [col]: val }))
+                }
+              />
+            ) : (
+              /* Result view */
+              <div className="py-4 space-y-4">
+                {/* Prediction */}
+                <div className="rounded-xl border bg-muted/30 p-4 space-y-2">
+                  <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+                    Prediction
+                  </p>
+                  {predictResult.predictions.map((pred, i) => (
+                    <div key={i} className="flex items-center gap-2">
+                      <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+                      <span className="text-sm text-muted-foreground">
+                        {predictResult.target}:
+                      </span>
+                      <span className="text-lg font-bold text-primary">
+                        {String(pred)}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Probabilities (classifiers only) */}
+                {predictResult.probabilities &&
+                  predictResult.probabilities.length > 0 && (
+                    <div className="rounded-xl border bg-muted/30 p-4 space-y-2">
+                      <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+                        Class Probabilities
+                      </p>
+                      {Object.entries(predictResult.probabilities[0])
+                        .sort(([, a], [, b]) => b - a)
+                        .map(([cls, prob]) => (
+                          <div key={cls} className="space-y-0.5">
+                            <div className="flex justify-between text-xs">
+                              <span className="font-mono">{cls}</span>
+                              <span
+                                className={`font-bold ${prob >= 0.5 ? "text-primary" : "text-muted-foreground"}`}
+                              >
+                                {(prob * 100).toFixed(1)}%
+                              </span>
+                            </div>
+                            <Progress
+                              value={prob * 100}
+                              className={`h-1.5 ${prob >= 0.5 ? "[&>[data-slot=progress-indicator]]:bg-primary" : "[&>[data-slot=progress-indicator]]:bg-muted-foreground"}`}
+                            />
+                          </div>
+                        ))}
+                    </div>
+                  )}
+
+                {/* Inputs recap */}
+                <details className="text-xs text-muted-foreground">
+                  <summary className="cursor-pointer hover:text-foreground">
+                    View inputs used
+                  </summary>
+                  <div className="mt-2 rounded-lg border bg-muted/20 p-3 grid grid-cols-2 gap-1">
+                    {Object.entries(predictInputs).map(([k, v]) => (
+                      <div key={k} className="flex gap-1">
+                        <span className="font-mono text-muted-foreground">
+                          {k}:
+                        </span>
+                        <span className="font-medium">{v}</span>
+                      </div>
+                    ))}
+                  </div>
+                </details>
+              </div>
+            )}
+          </div>
+
+          <div className="shrink-0 border-t border-border/60 px-6 py-4 flex justify-between items-center gap-2">
+            {predictResult ? (
+              <>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setPredictResult(null)}
+                >
+                  ← Edit inputs
+                </Button>
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    setPredictModel(null);
+                    setPredictResult(null);
+                    setPredictInputs({});
+                  }}
+                >
+                  Close
+                </Button>
+              </>
+            ) : (
+              <>
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    setPredictModel(null);
+                    setPredictResult(null);
+                    setPredictInputs({});
+                  }}
+                  disabled={isPredicting}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  onClick={handlePredict}
+                  disabled={
+                    isPredicting || Object.keys(predictInputs).length === 0
+                  }
+                >
+                  {isPredicting ? (
+                    <>
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />{" "}
+                      Predicting...
+                    </>
+                  ) : (
+                    <>
+                      <TestTube2 className="w-4 h-4 mr-2" /> Run Prediction
+                    </>
+                  )}
+                </Button>
+              </>
+            )}
+          </div>
         </DialogContent>
       </Dialog>
 
