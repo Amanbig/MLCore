@@ -18,8 +18,8 @@ class SignupResponse(BaseModel):
 
 
 class LoginRequest(BaseModel):
-    email: str | None
-    phone: str | None
+    email: str | None = None
+    phone: str | None = None
     password: str
 
 
