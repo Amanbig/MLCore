@@ -7,7 +7,20 @@ from src.modules.dataset.router import router as dataset_router
 from src.modules.file.router import router as file_router
 from src.modules.ml_model.router import router as ml_model_router
 
-app = FastAPI(redirect_slashes=True)
+from contextlib import asynccontextmanager
+from alembic.config import Config
+from alembic import command
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Run Alembic migrations on startup
+    alembic_cfg = Config("alembic.ini")
+    command.upgrade(alembic_cfg, "head")
+    yield
+
+
+app = FastAPI(redirect_slashes=True, lifespan=lifespan)
 
 app.include_router(auth_router)
 app.include_router(user_router)
