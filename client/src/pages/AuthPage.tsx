@@ -33,7 +33,7 @@ const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const PHONE_RE = /^\+?[0-9\s\-()]{7,15}$/;
 
 function validateEmail(v: string) {
-  if (!v) return "Email is required";
+  if (!v || !v.trim()) return "Email is required";
   if (!EMAIL_RE.test(v)) return "Enter a valid email address";
   return "";
 }
