@@ -254,7 +254,6 @@ export function DatasetsPage() {
 					</thead>
 					<tbody>
 						{preview.map((row, i) => (
-							// biome-ignore lint/suspicious/noArrayIndexKey: preview rows have no stable id
 							<tr
 								key={i}
 								className="border-b last:border-0 hover:bg-muted/30 transition-colors"
