@@ -15,14 +15,14 @@ from src.modules.dataset.schema import (
 )
 from src.modules.dataset.store.repository import DatasetRepository
 from src.modules.file.service import FileService
-
+from src.common.logger import log_execution
 
 class DatasetService:
     def __init__(self):
         self.repo = DatasetRepository()
         self.file_service = FileService(dir="/uploads")
         self.auth_service = AuthService()
-
+    @log_execution
     def create_dataset(self, db: Session, data: DatasetRequest, user_id: UUID) -> DatasetResponse:
         file = self.file_service.create_file(db=db, **data.model_dump())
         dataset = self.repo.create(

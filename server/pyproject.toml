@@ -36,7 +36,10 @@ dependencies = [
     "seaborn",      # visualization (optional)
 
     # --- Dev tools ---
-    "ruff"
+    "ruff",
+
+    # --- Logging ---
+    "loguru"
 ]
 
 
