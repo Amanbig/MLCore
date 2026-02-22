@@ -1,6 +1,6 @@
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, Request
+from fastapi import APIRouter, Depends, Request, UploadFile, File
 from sqlalchemy.orm import Session
 
 from src.common.db.session import get_db
@@ -41,11 +41,12 @@ def retrain_model(
 @router.post("/ml_model")
 def create_model(
     request: Request,
+    file: UploadFile = File(...),
     data: CreateMLModelRequest = Depends(),
     db: Session = Depends(get_db),
     token_payload: AuthToken = Depends(auth_service.verify_token),
 ):
-    return ml_model_service.create_model(db=db, data=data)
+    return ml_model_service.create_model(db=db, data=data, file=file, user_id=token_payload.id)
 
 
 @router.get("/ml_model/{model_id}")
@@ -81,11 +82,14 @@ def get_models(
 def update_model(
     request: Request,
     model_id: UUID,
+    file: UploadFile = File(None),
     data: CreateMLModelRequest = Depends(),
     db: Session = Depends(get_db),
     token_payload: AuthToken = Depends(auth_service.verify_token),
 ):
-    return ml_model_service.update_model(db=db, model_id=model_id, data=data)
+    return ml_model_service.update_model(
+        db=db, model_id=model_id, data=data, file=file, user_id=token_payload.id
+    )
 
 
 @router.delete("/ml_model/{model_id}")

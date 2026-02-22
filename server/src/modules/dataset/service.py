@@ -6,7 +6,13 @@ from fastapi import HTTPException
 from sqlalchemy.orm import Session
 
 from src.modules.auth.service import AuthService
-from src.modules.dataset.schema import DatasetBase, DatasetRequest, DatasetResponse, DatasetCleanRequest, DatasetTransformRequest
+from src.modules.dataset.schema import (
+    DatasetBase,
+    DatasetRequest,
+    DatasetResponse,
+    DatasetCleanRequest,
+    DatasetTransformRequest,
+)
 from src.modules.dataset.store.repository import DatasetRepository
 from src.modules.file.service import FileService
 
@@ -25,7 +31,7 @@ class DatasetService:
                 **data.model_dump(),
                 user_id=user_id,
                 file_id=file.id,
-                metadata=self.get_dataset_params_details(db=db, file_id=file.id),
+                dataset_metadata=self.get_dataset_params_details(db=db, file_id=file.id),
             ),
         )
         return dataset
@@ -143,7 +149,7 @@ class DatasetService:
                 file_id=file_obj.id,
                 rows=df.shape[0],
                 columns=df.shape[1],
-                metadata=self.get_dataset_params_details(db=db, file_id=file_obj.id),
+                dataset_metadata=self.get_dataset_params_details(db=db, file_id=file_obj.id),
                 user_id=user_id,
                 parent_id=parent_dataset.id,
                 version=new_version,

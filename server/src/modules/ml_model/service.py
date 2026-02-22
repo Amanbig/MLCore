@@ -10,14 +10,14 @@ from src.modules.ml_model.schema import (
     TrainModelRequest,
 )
 from src.modules.ml_model.store import MLModelRepository
-from src.modules.user import UserService
+from src.modules.user.service import UserService
 
 
 import os
 import joblib
 import pandas as pd
 from uuid import uuid4
-from fastapi import HTTPException
+from fastapi import HTTPException, UploadFile
 from src.modules.dataset.service import DatasetService
 
 
@@ -210,9 +210,15 @@ class MLModelService:
         res["name"] = new_model_db.name
         return res
 
-    def create_model(self, db: Session, data: CreateMLModelRequest) -> CreateMLModelResponse:
-        self.file_service.create_file(db=db, **data.model_dump())
-        self.repo.create(db=db, obj_in=data)
+    def create_model(
+        self, db: Session, data: CreateMLModelRequest, file: UploadFile, user_id: UUID
+    ) -> CreateMLModelResponse:
+        file_res = self.file_service.create_file(db=db, file=file, user_id=user_id)
+        data_dict = data.model_dump()
+        data_dict["file_id"] = file_res.id
+        data_dict["user_id"] = user_id
+        model_obj = self.repo.create(db=db, obj_in=data_dict)
+        return CreateMLModelResponse(**model_obj.__dict__, detail="Model created successfully")
 
     def get_model(self, db: Session, model_id: UUID) -> CreateMLModelResponse:
         return self.repo.get_by_id(db=db, id=model_id)
@@ -221,10 +227,22 @@ class MLModelService:
         return self.repo.get(db=db)
 
     def update_model(
-        self, db: Session, model_id: UUID, data: CreateMLModelRequest
+        self,
+        db: Session,
+        model_id: UUID,
+        data: CreateMLModelRequest,
+        file: UploadFile,
+        user_id: UUID,
     ) -> CreateMLModelResponse:
-        model = self.repo.get_by_id(db=db, id=model_id)
-        return self.repo.update(db=db, db_obj=model, obj_in=data)
+        model_obj = self.repo.get_by_id(db=db, id=model_id)
+
+        data_dict = data.model_dump()
+        if file:
+            file_res = self.file_service.create_file(db=db, file=file, user_id=user_id)
+            data_dict["file_id"] = file_res.id
+
+        model_obj = self.repo.update(db=db, db_obj=model_obj, obj_in=data_dict)
+        return CreateMLModelResponse(**model_obj.__dict__, detail="Model updated successfully")
 
     def delete_model(self, db: Session, model_id: UUID) -> CreateMLModelResponse:
         return self.repo.delete(db=db, id=model_id)

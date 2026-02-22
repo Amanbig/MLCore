@@ -13,7 +13,7 @@ from src.modules.auth.schema import (
     SignupRequest,
     SignupResponse,
 )
-from src.modules.user import UserService
+from src.modules.user.service import UserService
 from src.modules.user.schema import UserCreate
 
 

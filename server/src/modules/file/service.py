@@ -2,8 +2,7 @@ import shutil
 from pathlib import Path
 from typing import Sequence
 from uuid import UUID
-
-from fastapi import HTTPException
+from fastapi import HTTPException, UploadFile
 from sqlalchemy.orm import Session
 
 from src.modules.file.schema import (
@@ -21,22 +20,26 @@ class FileService:
         self.repo = FileRepository()
         self.dir = dir
 
-    def create_file(self, db: Session, data: FileCreate) -> FileCreateResponse:
-        with open(f"{self.dir}/{data.file.filename}", "wb") as buffer:
-            shutil.copyfileobj(data.file.file, buffer)
+    def create_file(self, db: Session, file: UploadFile, user_id: UUID) -> FileCreateResponse:
+        import os
+
+        os.makedirs(self.dir.lstrip("/"), exist_ok=True)
+        file_path = f"{self.dir}/{file.filename}"
+        with open(file_path.lstrip("/"), "wb") as buffer:
+            shutil.copyfileobj(file.file, buffer)
 
         files = self.repo.create(
             db=db,
             obj_in=FileCreate(
-                name=data.file.filename,
-                size=str(data.file.size),
-                location=f"{self.dir}/{data.file.filename}",
-                user_id=data.user_id,
-                file_type=data.file.filename.split(".")[-1],
-            ),
+                name=file.filename,
+                size=str(file.size or 0),
+                location=file_path,
+                user_id=user_id,
+                file_type=file.filename.split(".")[-1],
+            ).model_dump(),
         )
 
-        return FileCreateResponse(**files, detail="File Created Successfully")
+        return FileCreateResponse(**files.__dict__, detail="File Created Successfully")
 
     def get_file(self, db: Session) -> Sequence[FileBase]:
         files = self.repo.get(db=db)

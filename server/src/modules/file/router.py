@@ -15,14 +15,17 @@ file_service = FileService(dir="/uploads")
 auth_service = AuthService()
 
 
+from fastapi import APIRouter, Depends, Request, UploadFile, File
+
+
 @router.post("/file")
 def create_file(
     request: Request,
-    data: FileCreate = Depends(),
+    file: UploadFile = File(...),
     db: Session = Depends(get_db),
     token_payload: AuthToken = Depends(auth_service.verify_token),
 ):
-    return file_service.create_file(db=db, data=data)
+    return file_service.create_file(db=db, file=file, user_id=token_payload.id)
 
 
 @router.get("/file/{file_id}")

@@ -2,7 +2,7 @@ from datetime import datetime
 from uuid import UUID
 
 from fastapi import File, UploadFile
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 
 
 class FileBase(BaseModel):
@@ -17,12 +17,11 @@ class FileBase(BaseModel):
 
 
 class FileCreate(BaseModel):
-    name: str | None
-    size: str | None
+    name: str | None = None
+    size: str | None = None
     location: str
     file_type: str
     user_id: UUID
-    file: UploadFile = File(...)
 
 
 class FileCreateResponse(FileBase):

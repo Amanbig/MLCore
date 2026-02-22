@@ -32,7 +32,7 @@ class Dataset(Base):
     )
     rows: Mapped[int] = mapped_column(Integer, nullable=False)
     columns: Mapped[int] = mapped_column(Integer, nullable=False)
-    metadata: Mapped[dict] = mapped_column(JSON, nullable=False)
+    dataset_metadata: Mapped[dict] = mapped_column("metadata", JSON, nullable=False)
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
         default=lambda: datetime.now(timezone.utc),

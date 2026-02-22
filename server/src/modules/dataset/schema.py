@@ -12,7 +12,7 @@ class DatasetBase(BaseModel):
     created_at: datetime
     rows: int
     columns: int
-    metadata: dict
+    dataset_metadata: dict
     updated_at: datetime
     user_id: UUID
     parent_id: UUID | None = None
@@ -28,7 +28,7 @@ class DatasetResponse(BaseModel):
     created_at: datetime
     rows: int
     columns: int
-    metadata: dict
+    dataset_metadata: dict
     updated_at: datetime
     user_id: UUID
     parent_id: UUID | None = None
@@ -42,7 +42,7 @@ class DatasetRequest(BaseModel):
     file_id: UUID
     rows: int
     columns: int
-    metadata: dict
+    dataset_metadata: dict
 
 
 class DatasetCleanRequest(BaseModel):
