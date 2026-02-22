@@ -5,23 +5,23 @@ import pandas as pd
 from fastapi import HTTPException
 from sqlalchemy.orm import Session
 
+from src.common.logging.logger import log_execution
 from src.modules.auth.service import AuthService
 from src.modules.dataset.schema import (
     DatasetBase,
+    DatasetCleanRequest,
     DatasetRequest,
     DatasetResponse,
-    DatasetCleanRequest,
     DatasetTransformRequest,
 )
 from src.modules.dataset.store.repository import DatasetRepository
 from src.modules.file.service import FileService
-from src.common.logging.logger import log_execution
 
 
 class DatasetService:
     def __init__(self):
         self.repo = DatasetRepository()
-        self.file_service = FileService(dir="/uploads")
+        self.file_service = FileService(dir="/uploads/datasets")
         self.auth_service = AuthService()
 
     @log_execution
@@ -43,8 +43,8 @@ class DatasetService:
             rows = data.rows
             columns = data.columns
 
-        from uuid import uuid4
         from datetime import datetime, timezone
+        from uuid import uuid4
 
         now = datetime.now(timezone.utc)
         dataset = self.repo.create(
@@ -245,7 +245,7 @@ class DatasetService:
     def transform_dataset(
         self, db: Session, dataset_id: UUID, data: DatasetTransformRequest, user_id: UUID
     ):
-        from sklearn.preprocessing import StandardScaler, MinMaxScaler, LabelEncoder
+        from sklearn.preprocessing import LabelEncoder, MinMaxScaler, StandardScaler
 
         dataset = self.get_dataset(db=db, dataset_id=dataset_id)
         if dataset.user_id != user_id:

@@ -198,6 +198,7 @@ class MLModelService:
         model_db_obj = self.repo.create(
             db=db,
             obj_in={
+                "id": uuid4(),
                 "name": f"{data.model_algorithm} Model",
                 "version": "1.0",
                 "description": f"Trained {data.model_algorithm} on dataset",
@@ -207,7 +208,7 @@ class MLModelService:
                 "accuracy": float(accuracy),
                 "error": float(1 - accuracy),
                 "file_id": file_obj.id,
-                "id": uuid4(),  # ID is part of schema/model maybe
+                "user_id": user_id,
             },
         )
 

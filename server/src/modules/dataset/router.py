@@ -1,16 +1,30 @@
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, Request
+from fastapi import APIRouter, Depends, File, Request, UploadFile
 from sqlalchemy.orm import Session
 
 from src.common.db.session import get_db
 from src.modules.auth.schema import AuthToken
-from src.modules.dataset.schema import DatasetRequest, DatasetCleanRequest, DatasetTransformRequest
+from src.modules.dataset.schema import DatasetCleanRequest, DatasetRequest, DatasetTransformRequest
 from src.modules.dataset.service import DatasetService
+from src.modules.file.service import FileService
 
 router = APIRouter()
 
 dataset_service = DatasetService()
+dataset_file_service = FileService(dir="/uploads/datasets")
+
+
+@router.post("/dataset/upload")
+def upload_dataset_file(
+    request: Request,
+    file: UploadFile = File(...),
+    db: Session = Depends(get_db),
+    token_payload: AuthToken = Depends(
+        dataset_service.auth_service.security_service.verify_auth_token
+    ),
+):
+    return dataset_file_service.create_file(db=db, file=file, user_id=token_payload.id)
 
 
 @router.post("/dataset")
