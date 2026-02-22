@@ -1,20 +1,21 @@
+import time
+from contextlib import asynccontextmanager
+
+from alembic import command
+from alembic.config import Config
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from starlette.responses import JSONResponse
-from starlette.requests import Request
-import time
 from loguru import logger
+from src.modules.stats.router import router as stats_router
+from starlette.requests import Request
+from starlette.responses import JSONResponse
 
+from src.common.logging.logger import log_execution, setup_logging
 from src.modules.auth.router import router as auth_router
-from src.modules.user.router import router as user_router
 from src.modules.dataset.router import router as dataset_router
 from src.modules.file.router import router as file_router
 from src.modules.ml_model.router import router as ml_model_router
-
-from contextlib import asynccontextmanager
-from alembic.config import Config
-from alembic import command
-from src.common.logging.logger import log_execution, setup_logging
+from src.modules.user.router import router as user_router
 
 setup_logging()
 
@@ -84,6 +85,7 @@ app.include_router(user_router)
 app.include_router(dataset_router)
 app.include_router(file_router)
 app.include_router(ml_model_router)
+app.include_router(stats_router)
 
 
 @app.get("/health")

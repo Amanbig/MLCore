@@ -44,6 +44,7 @@ import {
 } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
+import { Progress } from "@/components/ui/progress";
 import {
   Tooltip,
   TooltipContent,
@@ -618,22 +619,24 @@ export function ModelsPage() {
                 <Plus className="w-4 h-4" /> Train Model
               </Button>
             </DialogTrigger>
-            <DialogContent className="sm:max-w-[520px] max-h-[90vh] overflow-y-auto">
-              <DialogHeader>
+            <DialogContent className="sm:max-w-[520px] !grid-none flex flex-col max-h-[85vh] p-0 overflow-hidden">
+              <DialogHeader className="shrink-0 p-6 pb-3">
                 <DialogTitle>Train a New Model</DialogTitle>
                 <DialogDescription>
                   Select a dataset, algorithm, and tune hyperparameters.
                 </DialogDescription>
               </DialogHeader>
-              <TrainFormFields
-                form={trainForm}
-                setForm={setTrainForm}
-                schemas={trainSchemas}
-                hyperparams={trainHyperparams}
-                setHyperparams={setTrainHyperparams}
-                isLoadingSchemas={isLoadingTrainSchemas}
-              />
-              <DialogFooter>
+              <div className="flex-1 overflow-y-auto px-6">
+                <TrainFormFields
+                  form={trainForm}
+                  setForm={setTrainForm}
+                  schemas={trainSchemas}
+                  hyperparams={trainHyperparams}
+                  setHyperparams={setTrainHyperparams}
+                  isLoadingSchemas={isLoadingTrainSchemas}
+                />
+              </div>
+              <DialogFooter className="shrink-0 border-t border-border/60 px-6 py-4 mt-0">
                 <Button
                   variant="outline"
                   onClick={() => setIsTrainOpen(false)}
@@ -742,18 +745,43 @@ export function ModelsPage() {
                 </DropdownMenu>
               </CardHeader>
               <CardContent>
-                <div className="grid grid-cols-2 gap-2 mt-1">
-                  <div className="rounded-lg bg-muted/50 p-2 text-center">
-                    <p className="text-xs text-muted-foreground">Accuracy</p>
-                    <p className="text-lg font-bold text-green-500">
+                <div className="space-y-2 mt-1">
+                  <div className="flex items-center justify-between text-xs text-muted-foreground">
+                    <span>Accuracy</span>
+                    <span
+                      className={`font-bold text-sm ${
+                        model.accuracy >= 0.9
+                          ? "text-emerald-400"
+                          : model.accuracy >= 0.7
+                            ? "text-amber-400"
+                            : "text-red-400"
+                      }`}
+                    >
                       {(model.accuracy * 100).toFixed(1)}%
-                    </p>
+                    </span>
                   </div>
-                  <div className="rounded-lg bg-muted/50 p-2 text-center">
-                    <p className="text-xs text-muted-foreground">Error</p>
-                    <p className="text-lg font-bold text-orange-500">
-                      {(model.error * 100).toFixed(1)}%
-                    </p>
+                  <Progress
+                    value={model.accuracy * 100}
+                    className={`h-1.5 ${
+                      model.accuracy >= 0.9
+                        ? "[&>div]:bg-emerald-400"
+                        : model.accuracy >= 0.7
+                          ? "[&>div]:bg-amber-400"
+                          : "[&>div]:bg-red-400"
+                    }`}
+                  />
+                  <div className="flex justify-between text-xs text-muted-foreground mt-1">
+                    <span>
+                      Error:{" "}
+                      <span className="text-foreground font-medium">
+                        {(model.error * 100).toFixed(1)}%
+                      </span>
+                    </span>
+                    {model.created_at && (
+                      <span>
+                        {new Date(model.created_at).toLocaleDateString()}
+                      </span>
+                    )}
                   </div>
                 </div>
               </CardContent>
@@ -828,8 +856,8 @@ export function ModelsPage() {
         open={!!retrainModel}
         onOpenChange={(o) => !o && setRetrainModel(null)}
       >
-        <DialogContent className="sm:max-w-[520px] max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
+        <DialogContent className="sm:max-w-[520px] flex flex-col max-h-[85vh]">
+          <DialogHeader className="shrink-0">
             <DialogTitle className="flex items-center gap-2">
               <FlaskConical className="w-5 h-5" /> Retrain —{" "}
               {retrainModel?.name}
@@ -838,15 +866,17 @@ export function ModelsPage() {
               Creates a new version. Current: v{retrainModel?.version}
             </DialogDescription>
           </DialogHeader>
-          <TrainFormFields
-            form={retrainForm}
-            setForm={setRetrainForm}
-            schemas={retrainSchemas}
-            hyperparams={retrainHyperparams}
-            setHyperparams={setRetrainHyperparams}
-            isLoadingSchemas={isLoadingRetrainSchemas}
-          />
-          <DialogFooter>
+          <div className="flex-1 overflow-y-auto pr-1 -mr-1">
+            <TrainFormFields
+              form={retrainForm}
+              setForm={setRetrainForm}
+              schemas={retrainSchemas}
+              hyperparams={retrainHyperparams}
+              setHyperparams={setRetrainHyperparams}
+              isLoadingSchemas={isLoadingRetrainSchemas}
+            />
+          </div>
+          <DialogFooter className="shrink-0 border-t border-border/60 pt-3 mt-2">
             <Button
               variant="outline"
               onClick={() => setRetrainModel(null)}
