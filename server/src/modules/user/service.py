@@ -37,8 +37,8 @@ class UserService:
         return created_user
 
     @log_execution
-    def get_user(self, db: Session, filters: dict = {}) -> Sequence[User]:
-        data = self.repo.get(db=db, filters=filters)
+    def get_user(self, db: Session, filters: dict | None = None) -> Sequence[User]:
+        data = self.repo.get(db=db, filters=filters or {})
         return data
 
     @log_execution

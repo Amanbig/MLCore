@@ -98,6 +98,6 @@ def log_execution(func: Callable[..., Any]) -> Callable[..., Any]:
                 time=execution_time,
             )
             logger.exception(e)  # Prints beautiful colored traceback automatically
-            raise HTTPException(status_code=500, detail="An internal server error occurred.")
+            raise HTTPException(status_code=500, detail="An internal server error occurred.") from e
 
     return wrapper

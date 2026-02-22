@@ -81,7 +81,7 @@ class MLModelService:
                 X, y, test_size=0.2, random_state=42
             )
         except Exception as e:
-            raise HTTPException(status_code=500, detail=f"Error in data split: {str(e)}")
+            raise HTTPException(status_code=500, detail=f"Error in data split: {str(e)}") from e
 
         model = None
         algo = data.model_algorithm.lower()
@@ -191,7 +191,7 @@ class MLModelService:
             model.fit(X_train, y_train)
             accuracy = model.score(X_test, y_test)
         except Exception as e:
-            raise HTTPException(status_code=500, detail=f"Error during training: {str(e)}")
+            raise HTTPException(status_code=500, detail=f"Error during training: {str(e)}") from e
 
         # Save Model to disk
         model_filename = f"model_{uuid4()}.joblib"
@@ -202,7 +202,7 @@ class MLModelService:
         try:
             joblib.dump(model, model_path)
         except Exception as e:
-            raise HTTPException(status_code=500, detail=f"Error saving model: {str(e)}")
+            raise HTTPException(status_code=500, detail=f"Error saving model: {str(e)}") from e
 
         # Create file record (using dict to bypass UploadFile validation in FileCreate schema)
         file_obj = self.file_service.repo.create(
@@ -423,7 +423,7 @@ class MLModelService:
             raise HTTPException(
                 status_code=500,
                 detail=f"Could not parse model input schema: {model_record.inputs}",
-            )
+            ) from None
 
         # Validate all required features are provided
         missing = [f for f in feature_cols if f not in data.inputs]
@@ -448,12 +448,12 @@ class MLModelService:
         try:
             sklearn_model = joblib.load(loc)
         except Exception as e:
-            raise HTTPException(status_code=500, detail=f"Failed to load model: {e}")
+            raise HTTPException(status_code=500, detail=f"Failed to load model: {e}") from e
 
         try:
             predictions = sklearn_model.predict(X).tolist()
         except Exception as e:
-            raise HTTPException(status_code=500, detail=f"Prediction failed: {e}")
+            raise HTTPException(status_code=500, detail=f"Prediction failed: {e}") from e
 
         # Probabilities for classifiers
         probabilities = None
@@ -462,7 +462,7 @@ class MLModelService:
                 proba = sklearn_model.predict_proba(X)
                 classes = [str(c) for c in sklearn_model.classes_]
                 probabilities = [
-                    {cls: round(float(p), 4) for cls, p in zip(classes, row_proba)}
+                    {cls: round(float(p), 4) for cls, p in zip(classes, row_proba, strict=False)}
                     for row_proba in proba
                 ]
             except Exception:
