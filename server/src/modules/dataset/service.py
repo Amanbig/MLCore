@@ -26,15 +26,43 @@ class DatasetService:
 
     @log_execution
     def create_dataset(self, db: Session, data: DatasetRequest, user_id: UUID) -> DatasetResponse:
-        file = self.file_service.create_file(db=db, **data.model_dump())
+        # File was already uploaded via POST /file — just look it up
+        file_orm = self.file_service.get_file_by_id(db=db, id=data.file_id)
+        # Convert ORM object → Pydantic FileBase (ORM mode)
+        from src.modules.file.schema import FileBase as FileBaseSchema
+        file = FileBaseSchema.model_validate(file_orm, from_attributes=True)
+
+        # Compute row/column counts from the actual file
+        try:
+            metadata = self.get_dataset_params_details(db=db, file_id=file_orm.id)
+            rows = metadata.get("shape", {}).get("rows", data.rows)
+            columns = metadata.get("shape", {}).get("columns", data.columns)
+        except Exception:
+            metadata = data.dataset_metadata
+            rows = data.rows
+            columns = data.columns
+
+        from uuid import uuid4
+        from datetime import datetime, timezone
+
+        now = datetime.now(timezone.utc)
         dataset = self.repo.create(
             db=db,
             obj_in=DatasetBase(
-                **data.model_dump(),
-                user_id=user_id,
+                id=uuid4(),
+                name=data.name,
+                description=data.description,
                 file_id=file.id,
-                dataset_metadata=self.get_dataset_params_details(db=db, file_id=file.id),
-            ),
+                rows=rows,
+                columns=columns,
+                dataset_metadata=metadata,
+                user_id=user_id,
+                parent_id=None,
+                version="1.0",
+                created_at=now,
+                updated_at=now,
+                file=file,
+            ).model_dump(exclude={"file", "created_at", "updated_at"}),
         )
         return dataset
 
@@ -228,7 +256,7 @@ class DatasetService:
 
     @log_execution
     def get_dataset_params_details(self, db: Session, file_id: UUID):
-        file = self.file_service.get_file(db=db, file_id=file_id)
+        file = self.file_service.get_file_by_id(db=db, id=file_id)
         if file.file_type == "csv":
             dataset = pd.read_csv(file.location)
         elif file.file_type == "xlsx":

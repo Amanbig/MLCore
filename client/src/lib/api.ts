@@ -5,6 +5,8 @@ export const api = axios.create({
 	baseURL: "/api",
 	headers: {
 		"Content-Type": "application/json",
+		// Required by backend CSRF protection for all non-GET cookie-authenticated requests
+		"X-Requested-With": "XMLHttpRequest",
 	},
 	// CRITICAL: Tells Axios to automatically include backend authorization cookies mapping to "set_cookie"
 	withCredentials: true,
