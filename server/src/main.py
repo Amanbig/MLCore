@@ -1,5 +1,8 @@
 from fastapi import FastAPI
 from starlette.responses import JSONResponse
+from starlette.requests import Request
+import time
+from loguru import logger
 
 from src.modules.auth.router import router as auth_router
 from src.modules.user.router import router as user_router
@@ -24,6 +27,43 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(redirect_slashes=True, lifespan=lifespan)
+
+
+@app.middleware("http")
+async def log_requests(request: Request, call_next):
+    start_time = time.time()
+
+    # Log the incoming request
+    method = request.method
+    path = request.url.path
+    client_ip = request.client.host if request.client else "Unknown"
+    logger.opt(colors=True).info(
+        f"<green>Incoming Request</green> | <cyan>{client_ip}</cyan> | <magenta>{method}</magenta> <cyan>{path}</cyan>"
+    )
+
+    response = await call_next(request)
+
+    # Log the outgoing response
+    process_time = time.time() - start_time
+    status_code = response.status_code
+
+    # Colorize status code
+    if 200 <= status_code < 300:
+        status_color = "green"
+    elif 300 <= status_code < 400:
+        status_color = "blue"
+    elif 400 <= status_code < 500:
+        status_color = "yellow"
+    else:
+        status_color = "red"
+
+    logger.opt(colors=True).info(
+        f"<green>Request Completed</green> | <magenta>{method}</magenta> <cyan>{path}</cyan> | "
+        f"Status: <{status_color}>{status_code}</{status_color}> | Time: <y>{process_time:.4f}s</y>"
+    )
+
+    return response
+
 
 app.include_router(auth_router)
 app.include_router(user_router)
