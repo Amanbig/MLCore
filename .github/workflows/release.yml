@@ -272,7 +272,7 @@ jobs:
             ```bash
             docker run -d \
               -p 8000:8000 \
-              -v mlcore-db:/app/server \
+              -v mlcore-db:/data \
               -v mlcore-uploads:/app/server/uploads \
               --name mlcore \
               ${{ secrets.DOCKERHUB_USERNAME }}/${{ env.IMAGE_NAME }}:${{ needs.version.outputs.version }}

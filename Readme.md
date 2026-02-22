@@ -25,7 +25,7 @@ A self-hosted machine learning platform — upload datasets, wrangle data, train
 # Docker Hub
 docker run -d \
   -p 8000:8000 \
-  -v mlcore-db:/app/server \
+  -v mlcore-db:/data \
   -v mlcore-uploads:/app/server/uploads \
   --name mlcore \
   procoder588/mlcore:latest
@@ -33,7 +33,7 @@ docker run -d \
 # GitHub Container Registry
 docker run -d \
   -p 8000:8000 \
-  -v mlcore-db:/app/server \
+  -v mlcore-db:/data \
   -v mlcore-uploads:/app/server/uploads \
   --name mlcore \
   ghcr.io/Amanbig/mlcore:latest
@@ -45,7 +45,7 @@ Open **http://localhost:8000** — UI and API both served from the same port.
 
 | Volume | Path in container | Purpose |
 |---|---|---|
-| `mlcore-db` | `/app/server` | SQLite database (`mlcore_db.db`) |
+| `mlcore-db` | `/data` | SQLite database — isolated from server code |
 | `mlcore-uploads` | `/app/server/uploads` | Datasets + model files |
 
 ---

@@ -39,8 +39,13 @@ RUN uv pip install --system --no-cache -e ./server/
 # FastAPI's static files handler will serve these in production
 COPY --from=client-build /build/dist ./server/static/
 
-# Create persistent upload directories
-RUN mkdir -p server/uploads/datasets server/uploads/models
+# Create persistent data directories (mounted as volumes at runtime)
+# /data      → SQLite database (separate from code so volumes don't overlay src)
+# uploads/   → datasets and model files
+RUN mkdir -p /data server/uploads/datasets server/uploads/models
+
+# Tell the app where to find the DB
+ENV DB_PATH=/data/mlcore_db.db
 
 WORKDIR /app/server
 

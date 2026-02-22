@@ -1,8 +1,14 @@
+import os
+
 from pydantic_settings import BaseSettings
+
+# In Docker the DB lives in /data (a dedicated volume mount).
+# In local dev it falls back to a file next to the server directory.
+_db_path = os.getenv("DB_PATH", "./mlcore_db.db")
 
 
 class Settings(BaseSettings):
-    DATABASE_URL: str = "sqlite:///./mlcore_db.db"
+    DATABASE_URL: str = f"sqlite:///{_db_path}"
     APP_ENV: str = "development"
     JWT_SECRET: str = "development"
     JWT_ALGORITHM: str = "HS256"

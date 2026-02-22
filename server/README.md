@@ -212,7 +212,7 @@ docker build -t mlcore:latest .
 # Run
 docker run -d \
   -p 8000:8000 \
-  -v mlcore-db:/app/server \
+  -v mlcore-db:/data \
   -v mlcore-uploads:/app/server/uploads \
   --name mlcore \
   mlcore:latest
