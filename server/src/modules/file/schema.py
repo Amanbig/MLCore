@@ -10,6 +10,7 @@ class FileBase(BaseModel):
     size: str
     location: str
     file_type: str
+    category: str = "general"
     user_id: UUID
     created_at: datetime
     updated_at: datetime
@@ -20,6 +21,7 @@ class FileCreate(BaseModel):
     size: str | None = None
     location: str
     file_type: str
+    category: str = "general"
     user_id: UUID
 
 

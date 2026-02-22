@@ -1,11 +1,12 @@
-from src.common.logging.logger import log_execution
 import shutil
 from pathlib import Path
 from typing import Sequence
 from uuid import UUID
+
 from fastapi import HTTPException, UploadFile
 from sqlalchemy.orm import Session
 
+from src.common.logging.logger import log_execution
 from src.modules.file.schema import (
     FileBase,
     FileCreate,
@@ -22,7 +23,9 @@ class FileService:
         self.dir = dir
 
     @log_execution
-    def create_file(self, db: Session, file: UploadFile, user_id: UUID) -> FileCreateResponse:
+    def create_file(
+        self, db: Session, file: UploadFile, user_id: UUID, category: str = "general"
+    ) -> FileCreateResponse:
         import os
 
         os.makedirs(self.dir.lstrip("/"), exist_ok=True)
@@ -38,7 +41,8 @@ class FileService:
                 location=file_path,
                 user_id=user_id,
                 file_type=file.filename.split(".")[-1],
-            ).model_dump(),
+            ).model_dump()
+            | {"category": category},
         )
 
         return FileCreateResponse(**files.__dict__, detail="File Created Successfully")

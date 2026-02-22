@@ -24,7 +24,9 @@ def upload_dataset_file(
         dataset_service.auth_service.security_service.verify_auth_token
     ),
 ):
-    return dataset_file_service.create_file(db=db, file=file, user_id=token_payload.id)
+    return dataset_file_service.create_file(
+        db=db, file=file, user_id=token_payload.id, category="dataset"
+    )
 
 
 @router.post("/dataset")

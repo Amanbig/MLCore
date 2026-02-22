@@ -187,6 +187,7 @@ class DatasetService:
                 "size": str(os.path.getsize(new_loc)),
                 "location": new_loc,
                 "file_type": "csv",
+                "category": "dataset",
                 "user_id": user_id,
             },
         )

@@ -1,9 +1,14 @@
-from src.common.logging.logger import log_execution
+import os
 from typing import List
-from uuid import UUID
+from uuid import UUID, uuid4
 
+import joblib
+import pandas as pd
+from fastapi import HTTPException, UploadFile
 from sqlalchemy.orm import Session
 
+from src.common.logging.logger import log_execution
+from src.modules.dataset.service import DatasetService
 from src.modules.file import FileService
 from src.modules.ml_model.schema import (
     CreateMLModelRequest,
@@ -14,18 +19,10 @@ from src.modules.ml_model.store import MLModelRepository
 from src.modules.user.service import UserService
 
 
-import os
-import joblib
-import pandas as pd
-from uuid import uuid4
-from fastapi import HTTPException, UploadFile
-from src.modules.dataset.service import DatasetService
-
-
 class MLModelService:
     def __init__(self):
         self.user_service = UserService()
-        self.file_service = FileService(dir="/uploads")
+        self.file_service = FileService(dir="/uploads/models")
         self.dataset_service = DatasetService()
         self.repo = MLModelRepository()
 
@@ -190,6 +187,7 @@ class MLModelService:
                 "size": str(os.path.getsize(model_path)),
                 "location": model_path,
                 "file_type": "joblib",
+                "category": "model",
                 "user_id": user_id,
             },
         )
@@ -280,7 +278,9 @@ class MLModelService:
     def create_model(
         self, db: Session, data: CreateMLModelRequest, file: UploadFile, user_id: UUID
     ) -> CreateMLModelResponse:
-        file_res = self.file_service.create_file(db=db, file=file, user_id=user_id)
+        file_res = self.file_service.create_file(
+            db=db, file=file, user_id=user_id, category="model"
+        )
         data_dict = data.model_dump()
         data_dict["file_id"] = file_res.id
         data_dict["user_id"] = user_id
