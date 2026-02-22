@@ -1,13 +1,40 @@
 <!doctype html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>client</title>
-  </head>
-  <body>
-    <div id="root"></div>
-    <script type="module" src="/src/main.tsx"></script>
-  </body>
+    <head>
+        <meta charset="UTF-8" />
+        <!-- Light theme favicon -->
+        <link
+            rel="icon"
+            type="image/x-icon"
+            href="/logo.ico"
+            media="(prefers-color-scheme: light)"
+        />
+        <link
+            rel="icon"
+            type="image/png"
+            href="/logo.png"
+            media="(prefers-color-scheme: light)"
+        />
+        <!-- Dark theme favicon -->
+        <link
+            rel="icon"
+            type="image/x-icon"
+            href="/logo_dark.ico"
+            media="(prefers-color-scheme: dark)"
+        />
+        <link
+            rel="icon"
+            type="image/png"
+            href="/logo_dark.png"
+            media="(prefers-color-scheme: dark)"
+        />
+        <!-- Apple touch icon (always light version) -->
+        <link rel="apple-touch-icon" href="/logo.png" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>ML Core</title>
+    </head>
+    <body>
+        <div id="root"></div>
+        <script type="module" src="/src/main.tsx"></script>
+    </body>
 </html>
