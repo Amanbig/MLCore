@@ -25,6 +25,19 @@ def train_model(
     return ml_model_service.train_model(db=db, data=data, user_id=token_payload.id)
 
 
+@router.post("/ml_model/{model_id}/retrain")
+def retrain_model(
+    request: Request,
+    model_id: UUID,
+    data: TrainModelRequest,
+    db: Session = Depends(get_db),
+    token_payload: AuthToken = Depends(auth_service.verify_token),
+):
+    return ml_model_service.retrain_model(
+        db=db, model_id=model_id, data=data, user_id=token_payload.id
+    )
+
+
 @router.post("/ml_model")
 def create_model(
     request: Request,
@@ -43,6 +56,16 @@ def get_model(
     token_payload: AuthToken = Depends(auth_service.verify_token),
 ):
     return ml_model_service.get_model(db=db, model_id=model_id)
+
+
+@router.get("/ml_model/{model_id}/versions")
+def get_model_versions(
+    request: Request,
+    model_id: UUID,
+    db: Session = Depends(get_db),
+    token_payload: AuthToken = Depends(auth_service.verify_token),
+):
+    return ml_model_service.get_model_versions(db=db, model_id=model_id)
 
 
 @router.get("/ml_models")

@@ -4,7 +4,11 @@ from uuid import UUID
 from sqlalchemy.orm import Session
 
 from src.modules.file import FileService
-from src.modules.ml_model.schema import CreateMLModelRequest, CreateMLModelResponse, TrainModelRequest
+from src.modules.ml_model.schema import (
+    CreateMLModelRequest,
+    CreateMLModelResponse,
+    TrainModelRequest,
+)
 from src.modules.ml_model.store import MLModelRepository
 from src.modules.user import UserService
 
@@ -157,6 +161,54 @@ class MLModelService:
             "error": model_db_obj.error,
             "file_id": model_db_obj.file_id,
         }
+
+    def get_model_versions(self, db: Session, model_id: UUID) -> List[CreateMLModelResponse]:
+        model = self.get_model(db=db, model_id=model_id)
+        if not model:
+            raise HTTPException(status_code=404, detail="Model not found")
+
+        root_id = model.parent_id if model.parent_id else model.id
+        from sqlalchemy import or_
+
+        models = (
+            db.query(self.repo.model)
+            .filter(or_(self.repo.model.id == root_id, self.repo.model.parent_id == root_id))
+            .all()
+        )
+        return models
+
+    def retrain_model(self, db: Session, model_id: UUID, data: TrainModelRequest, user_id: UUID):
+        parent_model = self.get_model(db=db, model_id=model_id)
+        if not parent_model:
+            raise HTTPException(status_code=404, detail="Parent model not found")
+
+        # Calculate new semantic version based on parent
+        try:
+            old_major, old_minor = map(int, str(parent_model.version).split("."))
+            new_version = f"{old_major}.{old_minor + 1}"
+        except Exception:
+            new_version = "1.1"  # Fallback if parsing fails
+
+        # Re-use train_model logic but we simply change the version and parent_id right after
+        # This is a bit duplicative but simpler. Let's just run train_model and then UPDATE the returned model's version and parent_id
+        res = self.train_model(db, data, user_id)
+
+        # Now update the created model to link it
+        new_model_db = self.repo.get_by_id(db=db, id=res["id"])
+        new_model_db = self.repo.update(
+            db=db,
+            db_obj=new_model_db,
+            obj_in={
+                "parent_id": parent_model.id,
+                "version": new_version,
+                "name": f"{parent_model.name} (Retrained v{new_version})",
+            },
+        )
+
+        res["parent_id"] = new_model_db.parent_id
+        res["version"] = new_model_db.version
+        res["name"] = new_model_db.name
+        return res
 
     def create_model(self, db: Session, data: CreateMLModelRequest) -> CreateMLModelResponse:
         self.file_service.create_file(db=db, **data.model_dump())

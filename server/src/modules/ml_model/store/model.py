@@ -27,6 +27,9 @@ class MLModel(Base):
     user_id: Mapped[uuid.UUID] = mapped_column(
         Uuid, ForeignKey(f"{Tables.USERS}.id"), nullable=False
     )
+    parent_id: Mapped[uuid.UUID] = mapped_column(
+        Uuid, ForeignKey(f"{Tables.MODELS}.id"), nullable=True
+    )
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=lambda: datetime.now(timezone.utc)
     )

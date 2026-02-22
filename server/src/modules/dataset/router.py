@@ -5,7 +5,7 @@ from sqlalchemy.orm import Session
 
 from src.common.db.session import get_db
 from src.modules.auth.schema import AuthToken
-from src.modules.dataset.schema import DatasetRequest
+from src.modules.dataset.schema import DatasetRequest, DatasetCleanRequest, DatasetTransformRequest
 from src.modules.dataset.service import DatasetService
 
 router = APIRouter()
@@ -63,3 +63,29 @@ def delete_dataset(
     token_payload: AuthToken = Depends(dataset_service.auth_service.verify_token),
 ):
     return dataset_service.delete_dataset(db=db, dataset_id=dataset_id, user_id=token_payload.id)
+
+
+@router.post("/dataset/{dataset_id}/clean")
+def clean_dataset(
+    request: Request,
+    dataset_id: UUID,
+    data: DatasetCleanRequest,
+    db: Session = Depends(get_db),
+    token_payload: AuthToken = Depends(dataset_service.auth_service.verify_token),
+):
+    return dataset_service.clean_dataset(
+        db=db, dataset_id=dataset_id, data=data, user_id=token_payload.id
+    )
+
+
+@router.post("/dataset/{dataset_id}/transform")
+def transform_dataset(
+    request: Request,
+    dataset_id: UUID,
+    data: DatasetTransformRequest,
+    db: Session = Depends(get_db),
+    token_payload: AuthToken = Depends(dataset_service.auth_service.verify_token),
+):
+    return dataset_service.transform_dataset(
+        db=db, dataset_id=dataset_id, data=data, user_id=token_payload.id
+    )

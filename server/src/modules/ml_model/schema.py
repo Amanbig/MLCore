@@ -15,6 +15,7 @@ class MLModelBase(BaseModel):
     accuracy: float
     error: float
     file_id: UUID
+    parent_id: UUID | None = None
 
 
 class CreateMLModelRequest(BaseModel):

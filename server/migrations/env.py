@@ -7,7 +7,23 @@ from sqlalchemy import create_engine, pool
 from src.common.config import settings
 from src.common.db.base import Base
 
-# Import all models so metadata is populated
+# Import all models dynamically so metadata is populated
+import importlib
+from pathlib import Path
+
+modules_path = Path(__file__).parent.parent / "src" / "modules"
+if modules_path.exists():
+    for module_dir in modules_path.iterdir():
+        if module_dir.is_dir():
+            store_dir = module_dir / "store"
+            if store_dir.exists():
+                for file in store_dir.glob("model*.py"):
+                    if file.is_file() and not file.name.startswith("__"):
+                        module_name = f"src.modules.{module_dir.name}.store.{file.stem}"
+                        try:
+                            importlib.import_module(module_name)
+                        except Exception as e:
+                            print(f"Failed to load model {module_name}: {e}")
 
 # Alembic Config object
 config = context.config

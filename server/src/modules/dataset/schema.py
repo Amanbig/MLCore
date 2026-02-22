@@ -15,6 +15,8 @@ class DatasetBase(BaseModel):
     metadata: dict
     updated_at: datetime
     user_id: UUID
+    parent_id: UUID | None = None
+    version: str = "1.0"
     file: FileBase
 
 
@@ -29,6 +31,8 @@ class DatasetResponse(BaseModel):
     metadata: dict
     updated_at: datetime
     user_id: UUID
+    parent_id: UUID | None = None
+    version: str = "1.0"
     file: FileBase
 
 
@@ -39,3 +43,13 @@ class DatasetRequest(BaseModel):
     rows: int
     columns: int
     metadata: dict
+
+
+class DatasetCleanRequest(BaseModel):
+    strategy: str  # 'drop_nulls', 'fill_mean', 'fill_median'
+    columns: list[str] | None = None
+
+
+class DatasetTransformRequest(BaseModel):
+    strategy: str  # 'standard_scaler', 'min_max_scaler', 'label_encoder'
+    columns: list[str]

@@ -20,6 +20,10 @@ class Dataset(Base):
     file_id: Mapped[uuid.UUID] = mapped_column(
         Uuid, ForeignKey(f"{Tables.FILES}.id"), nullable=False
     )
+    parent_id: Mapped[uuid.UUID] = mapped_column(
+        Uuid, ForeignKey(f"{Tables.DATASETS}.id"), nullable=True
+    )
+    version: Mapped[str] = mapped_column(String(50), nullable=False, default="1.0")
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=lambda: datetime.now(timezone.utc)
     )
