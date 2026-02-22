@@ -4,7 +4,7 @@ from uuid import UUID
 from sqlalchemy.orm import Session
 
 from src.modules.file import FileService
-from src.modules.ml_model.schema import CreateMLModelRequest, CreateMLModelResponse
+from src.modules.ml_model.schema import CreateMLModelRequest, CreateMLModelResponse, TrainModelRequest
 from src.modules.ml_model.store import MLModelRepository
 from src.modules.user import UserService
 
@@ -15,7 +15,6 @@ import pandas as pd
 from uuid import uuid4
 from fastapi import HTTPException
 from src.modules.dataset.service import DatasetService
-from src.modules.file.schema import FileCreate
 
 
 class MLModelService:
@@ -160,7 +159,7 @@ class MLModelService:
         }
 
     def create_model(self, db: Session, data: CreateMLModelRequest) -> CreateMLModelResponse:
-        file = self.file_service.create_file(db=db, **data.model_dump())
+        self.file_service.create_file(db=db, **data.model_dump())
         self.repo.create(db=db, obj_in=data)
 
     def get_model(self, db: Session, model_id: UUID) -> CreateMLModelResponse:

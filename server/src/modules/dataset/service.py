@@ -65,9 +65,6 @@ class DatasetService:
         elif file.file_type == "xlsx":
             dataset = pd.read_excel(file.location)
 
-        numeric_cols = dataset.select_dtypes(include="number").columns.tolist()
-        categorical_cols = dataset.select_dtypes(exclude="number").columns.tolist()
-
         return {
             "shape": {
                 "rows": dataset.shape[0],
