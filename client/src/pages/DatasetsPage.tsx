@@ -624,7 +624,7 @@ export function DatasetsPage() {
                         </div>
                         <Progress
                           value={quality}
-                          className={`h-1 ${quality >= 90 ? "[&>div]:bg-emerald-400" : quality >= 70 ? "[&>div]:bg-amber-400" : "[&>div]:bg-red-400"}`}
+                          className={`h-1 ${quality >= 90 ? "[&>[data-slot=progress-indicator]]:bg-emerald-400" : quality >= 70 ? "[&>[data-slot=progress-indicator]]:bg-amber-400" : "[&>[data-slot=progress-indicator]]:bg-red-400"}`}
                         />
                       </div>
                     );
@@ -986,12 +986,19 @@ export function DatasetsPage() {
                     }));
 
                     const CHART_COLORS = [
-                      "var(--color-chart-1)",
-                      "var(--color-chart-2)",
-                      "var(--color-chart-3)",
-                      "var(--color-chart-4)",
-                      "var(--color-chart-5)",
+                      "#5B8AF0",
+                      "#4DC0A0",
+                      "#F5C842",
+                      "#A78BFA",
+                      "#E05C5C",
                     ];
+
+                    const TOOLTIP_STYLE = {
+                      backgroundColor: "#1e2130",
+                      border: "1px solid rgba(255,255,255,0.1)",
+                      borderRadius: 8,
+                      fontSize: 11,
+                    };
 
                     return (
                       <>
@@ -1037,36 +1044,23 @@ export function DatasetsPage() {
                             >
                               <CartesianGrid
                                 strokeDasharray="3 3"
-                                stroke="var(--color-border)"
+                                stroke="rgba(255,255,255,0.06)"
                                 vertical={false}
                               />
                               <XAxis
                                 dataKey="col"
-                                tick={{
-                                  fontSize: 10,
-                                  fill: "var(--color-muted-foreground)",
-                                }}
+                                tick={{ fontSize: 10, fill: "#888" }}
                                 tickLine={false}
                                 axisLine={false}
                               />
                               <YAxis
-                                tick={{
-                                  fontSize: 10,
-                                  fill: "var(--color-muted-foreground)",
-                                }}
+                                tick={{ fontSize: 10, fill: "#888" }}
                                 tickLine={false}
                                 axisLine={false}
                               />
                               <Tooltip
-                                contentStyle={{
-                                  backgroundColor: "var(--color-card)",
-                                  border: "1px solid var(--color-border)",
-                                  borderRadius: 8,
-                                  fontSize: 11,
-                                }}
-                                labelStyle={{
-                                  color: "var(--color-muted-foreground)",
-                                }}
+                                contentStyle={TOOLTIP_STYLE}
+                                labelStyle={{ color: "#888" }}
                               />
                               <Bar
                                 dataKey="mean"
@@ -1102,40 +1096,27 @@ export function DatasetsPage() {
                               >
                                 <CartesianGrid
                                   strokeDasharray="3 3"
-                                  stroke="var(--color-border)"
+                                  stroke="rgba(255,255,255,0.06)"
                                   vertical={false}
                                 />
                                 <XAxis
                                   dataKey="col"
-                                  tick={{
-                                    fontSize: 10,
-                                    fill: "var(--color-muted-foreground)",
-                                  }}
+                                  tick={{ fontSize: 10, fill: "#888" }}
                                   tickLine={false}
                                   axisLine={false}
                                 />
                                 <YAxis
                                   domain={[0, 100]}
-                                  tick={{
-                                    fontSize: 10,
-                                    fill: "var(--color-muted-foreground)",
-                                  }}
+                                  tick={{ fontSize: 10, fill: "#888" }}
                                   tickLine={false}
                                   axisLine={false}
                                   unit="%"
                                 />
-                                <Tooltip
-                                  contentStyle={{
-                                    backgroundColor: "var(--color-card)",
-                                    border: "1px solid var(--color-border)",
-                                    borderRadius: 8,
-                                    fontSize: 11,
-                                  }}
-                                />
+                                <Tooltip contentStyle={TOOLTIP_STYLE} />
                                 <Bar
                                   dataKey="pct"
                                   name="Missing %"
-                                  fill="var(--color-chart-4)"
+                                  fill="#F5C842"
                                   radius={[4, 4, 0, 0]}
                                 />
                               </BarChart>

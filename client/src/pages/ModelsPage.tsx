@@ -619,7 +619,7 @@ export function ModelsPage() {
                 <Plus className="w-4 h-4" /> Train Model
               </Button>
             </DialogTrigger>
-            <DialogContent className="sm:max-w-[520px] !grid-none flex flex-col max-h-[85vh] p-0 overflow-hidden">
+            <DialogContent className="sm:max-w-[520px] flex flex-col max-h-[85vh] p-0 overflow-hidden">
               <DialogHeader className="shrink-0 p-6 pb-3">
                 <DialogTitle>Train a New Model</DialogTitle>
                 <DialogDescription>
@@ -764,10 +764,10 @@ export function ModelsPage() {
                     value={model.accuracy * 100}
                     className={`h-1.5 ${
                       model.accuracy >= 0.9
-                        ? "[&>div]:bg-emerald-400"
+                        ? "[&>[data-slot=progress-indicator]]:bg-emerald-400"
                         : model.accuracy >= 0.7
-                          ? "[&>div]:bg-amber-400"
-                          : "[&>div]:bg-red-400"
+                          ? "[&>[data-slot=progress-indicator]]:bg-amber-400"
+                          : "[&>[data-slot=progress-indicator]]:bg-red-400"
                     }`}
                   />
                   <div className="flex justify-between text-xs text-muted-foreground mt-1">
@@ -856,8 +856,8 @@ export function ModelsPage() {
         open={!!retrainModel}
         onOpenChange={(o) => !o && setRetrainModel(null)}
       >
-        <DialogContent className="sm:max-w-[520px] flex flex-col max-h-[85vh]">
-          <DialogHeader className="shrink-0">
+        <DialogContent className="sm:max-w-[520px] flex flex-col max-h-[85vh] p-0 overflow-hidden">
+          <DialogHeader className="shrink-0 p-6 pb-3">
             <DialogTitle className="flex items-center gap-2">
               <FlaskConical className="w-5 h-5" /> Retrain —{" "}
               {retrainModel?.name}
@@ -866,7 +866,7 @@ export function ModelsPage() {
               Creates a new version. Current: v{retrainModel?.version}
             </DialogDescription>
           </DialogHeader>
-          <div className="flex-1 overflow-y-auto pr-1 -mr-1">
+          <div className="flex-1 overflow-y-auto px-6">
             <TrainFormFields
               form={retrainForm}
               setForm={setRetrainForm}
@@ -876,7 +876,7 @@ export function ModelsPage() {
               isLoadingSchemas={isLoadingRetrainSchemas}
             />
           </div>
-          <DialogFooter className="shrink-0 border-t border-border/60 pt-3 mt-2">
+          <DialogFooter className="shrink-0 border-t border-border/60 px-6 py-4">
             <Button
               variant="outline"
               onClick={() => setRetrainModel(null)}
