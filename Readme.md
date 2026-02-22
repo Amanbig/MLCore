@@ -6,6 +6,14 @@ A self-hosted machine learning platform — upload datasets, wrangle data, train
 
 ---
 
+## Preview
+
+| Light Mode | Dark Mode |
+|---|---|
+| ![Light Mode](public/light_preview.png) | ![Dark Mode](public/dark_preview.png) |
+
+---
+
 ## Features
 
 - 📁 **Dataset management** — upload CSV / Excel files, version datasets, explore stats, wrangle (normalise, encode, drop nulls)
