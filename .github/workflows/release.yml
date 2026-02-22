@@ -85,12 +85,12 @@ jobs:
     needs: [lint-server, lint-client, typecheck]
 
     permissions:
-      contents: write   # push the git tag
+      contents: write # push the git tag
 
     outputs:
-      version:   ${{ steps.ver.outputs.version }}
-      tag:       ${{ steps.ver.outputs.tag }}
-      is_new:    ${{ steps.check.outputs.is_new }}
+      version: ${{ steps.ver.outputs.version }}
+      tag: ${{ steps.ver.outputs.tag }}
+      is_new: ${{ steps.check.outputs.is_new }}
       should_push: ${{ steps.push_flag.outputs.push }}
 
     steps:
@@ -232,3 +232,51 @@ jobs:
           echo "docker pull ${{ secrets.DOCKERHUB_USERNAME }}/${{ env.IMAGE_NAME }}:$VERSION" >> $GITHUB_STEP_SUMMARY
           echo "docker pull ghcr.io/${{ github.repository_owner }}/${{ env.IMAGE_NAME }}:$VERSION" >> $GITHUB_STEP_SUMMARY
           echo '```' >> $GITHUB_STEP_SUMMARY
+
+  # ── 4. Create GitHub Release ─────────────────────────────────────────────
+  github-release:
+    name: GitHub Release
+    runs-on: ubuntu-latest
+    needs: [version, build-and-push]
+
+    # Only create a release when a new version tag was created on a real push
+    if: needs.version.outputs.is_new == 'true' && needs.version.outputs.should_push == 'true'
+
+    permissions:
+      contents: write # create releases
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # full history for changelog generation
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ needs.version.outputs.tag }}
+          name: "ML Core ${{ needs.version.outputs.tag }}"
+          generate_release_notes: true # auto-generates changelog from commits/PRs
+          body: |
+            ## 🐳 Docker
+
+            ```bash
+            # Docker Hub
+            docker pull ${{ secrets.DOCKERHUB_USERNAME }}/${{ env.IMAGE_NAME }}:${{ needs.version.outputs.version }}
+
+            # GitHub Container Registry
+            docker pull ghcr.io/${{ github.repository_owner }}/${{ env.IMAGE_NAME }}:${{ needs.version.outputs.version }}
+            ```
+
+            ## 🚀 Run
+
+            ```bash
+            docker run -d \
+              -p 8000:8000 \
+              -v mlcore-db:/app/server \
+              -v mlcore-uploads:/app/server/uploads \
+              --name mlcore \
+              ${{ secrets.DOCKERHUB_USERNAME }}/${{ env.IMAGE_NAME }}:${{ needs.version.outputs.version }}
+            ```
+
+            Open **http://localhost:8000**
+          make_latest: true
