@@ -98,7 +98,19 @@ app.include_router(api_router)
 @app.get("/api/health")
 @log_execution
 def health():
-    return JSONResponse("System is healthy")
+    import os
+
+    import tomllib
+
+    version = os.getenv("APP_VERSION")
+    if not version:
+        try:
+            version = tomllib.loads((Path(__file__).parent.parent / "pyproject.toml").read_text())[
+                "project"
+            ]["version"]
+        except Exception:
+            version = "unknown"
+    return JSONResponse({"status": "healthy", "version": version})
 
 
 # ── Static / SPA serving (production only) ──────────────────────────────────

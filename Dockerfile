@@ -20,6 +20,10 @@ RUN npm run build
 # ─────────────────────────────────────────────────────────────────────────────
 FROM python:3.13-slim AS runtime
 
+# Build arg injected by CI — baked in as an env var so the app can expose it
+ARG APP_VERSION=dev
+ENV APP_VERSION=${APP_VERSION}
+
 # Install uv (fast Python package installer)
 COPY --from=ghcr.io/astral-sh/uv:latest /uv /usr/local/bin/uv
 

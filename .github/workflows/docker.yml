@@ -1,39 +1,118 @@
 name: Build & Push Docker Image
 
+# Triggers:
+#   1. When the auto-tag workflow pushes a v* tag (normal release flow)
+#   2. Manually via workflow_dispatch (for hotfixes / re-releases)
+#   3. On PRs to main/master — build only, no push (smoke test)
 on:
   push:
-    branches:
-      - main
-      - master
     tags:
       - "v*.*.*"
   pull_request:
-    branches:
-      - main
-      - master
+    branches: [main, master]
+  workflow_dispatch:
+    inputs:
+      push_image:
+        description: "Push image to registries?"
+        required: true
+        default: "true"
+        type: choice
+        options: ["true", "false"]
 
 env:
   IMAGE_NAME: mlcore
 
 jobs:
+  # ── 1. Lint gate — must pass before we build ──────────────────────────────
+  lint-server:
+    name: Ruff (Python)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - run: pip install ruff
+      - name: Lint
+        run: ruff check server/src --output-format=github
+      - name: Format
+        run: ruff format server/src --check
+
+  lint-client:
+    name: Biome (Client)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: client/package-lock.json
+      - run: npm ci
+        working-directory: client
+      - name: Lint
+        working-directory: client
+        run: npx biome lint .
+      - name: Format
+        working-directory: client
+        run: npx biome format .
+
+  # ── 2. Read the project version ───────────────────────────────────────────
+  version:
+    name: Read version
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.ver.outputs.version }}
+      tag: ${{ steps.ver.outputs.tag }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Extract version from pyproject.toml
+        id: ver
+        run: |
+          VERSION=$(python3 - <<'EOF'
+          import tomllib, pathlib
+          data = tomllib.loads(pathlib.Path("server/pyproject.toml").read_text())
+          print(data["project"]["version"])
+          EOF
+          )
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "tag=v$VERSION"    >> $GITHUB_OUTPUT
+          echo "📦 Building version: $VERSION"
+
+  # ── 3. Build & Push ───────────────────────────────────────────────────────
   build-and-push:
     name: Build & Push
     runs-on: ubuntu-latest
+    needs: [lint-server, lint-client, version]
 
     permissions:
       contents: read
-      packages: write   # needed to push to ghcr.io
+      packages: write
 
     steps:
-      # ── Checkout ────────────────────────────────────────────────────────────
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      # ── Docker Buildx (multi-platform support + cache) ───────────────────
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
+      # Determine whether we should actually push
+      - name: Resolve push flag
+        id: should_push
+        run: |
+          if [[ "${{ github.event_name }}" == "pull_request" ]]; then
+            echo "push=false" >> $GITHUB_OUTPUT
+          elif [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+            echo "push=${{ github.event.inputs.push_image }}" >> $GITHUB_OUTPUT
+          else
+            echo "push=true" >> $GITHUB_OUTPUT
+          fi
+
       # ── Generate tags & labels ────────────────────────────────────────────
+      # We always include the version from pyproject.toml regardless of how
+      # the workflow was triggered (tag push, manual, etc.)
       - name: Extract Docker metadata
         id: meta
         uses: docker/metadata-action@v5
@@ -42,63 +121,74 @@ jobs:
             ${{ secrets.DOCKERHUB_USERNAME }}/${{ env.IMAGE_NAME }}
             ghcr.io/${{ github.repository_owner }}/${{ env.IMAGE_NAME }}
           tags: |
-            # Branch name  (e.g. main → :main)
-            type=ref,event=branch
-            # PR number     (e.g. pr-42 → :pr-42)
-            type=ref,event=pr
-            # Semver tags   (e.g. v1.2.3 → :1.2.3 and :1.2)
-            type=semver,pattern={{version}}
-            type=semver,pattern={{major}}.{{minor}}
-            # Short git SHA  (e.g. :sha-abc1234)
+            # Version from pyproject.toml  →  :0.1.0
+            type=raw,value=${{ needs.version.outputs.version }}
+            # Major.minor                  →  :0.1
+            type=raw,value=${{ needs.version.outputs.version }},suffix=,enable=true
+            # Short SHA                    →  :sha-abc1234
             type=sha,prefix=sha-
-            # :latest on default branch
-            type=raw,value=latest,enable={{is_default_branch}}
+            # :latest on tag pushes & manual runs (not PRs)
+            type=raw,value=latest,enable=${{ github.event_name != 'pull_request' }}
+            # Keep semver tags if pushed directly  →  :v0.1.0
+            type=semver,pattern=v{{version}}
+            type=semver,pattern=v{{major}}.{{minor}}
           labels: |
             org.opencontainers.image.title=ML Core
             org.opencontainers.image.description=ML platform — train, manage and serve ML models
+            org.opencontainers.image.version=${{ needs.version.outputs.version }}
             org.opencontainers.image.vendor=${{ github.repository_owner }}
 
-      # ── Login to Docker Hub ───────────────────────────────────────────────
+      # ── Logins ───────────────────────────────────────────────────────────
       - name: Login to Docker Hub
-        if: github.event_name != 'pull_request'
+        if: steps.should_push.outputs.push == 'true'
         uses: docker/login-action@v3
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-      # ── Login to GitHub Container Registry ───────────────────────────────
       - name: Login to GitHub Container Registry
-        if: github.event_name != 'pull_request'
+        if: steps.should_push.outputs.push == 'true'
         uses: docker/login-action@v3
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      # ── Build & Push ──────────────────────────────────────────────────────
+      # ── Build ────────────────────────────────────────────────────────────
       - name: Build and push image
         uses: docker/build-push-action@v6
         with:
           context: .
           file: ./Dockerfile
-          # Only push on non-PR events (i.e. merged to main or a tag)
-          push: ${{ github.event_name != 'pull_request' }}
+          push: ${{ steps.should_push.outputs.push == 'true' }}
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
-          # GitHub Actions cache — makes repeat builds much faster
+          # Build args so the version is baked into the image
+          build-args: |
+            APP_VERSION=${{ needs.version.outputs.version }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
-      # ── Summary ───────────────────────────────────────────────────────────
+      # ── Summary ──────────────────────────────────────────────────────────
       - name: Write job summary
-        if: github.event_name != 'pull_request'
         run: |
-          echo "### 🐳 Docker Image Published" >> $GITHUB_STEP_SUMMARY
+          PUSHED="${{ steps.should_push.outputs.push }}"
+          VERSION="${{ needs.version.outputs.version }}"
+          echo "### 🐳 Docker Build — ML Core \`$VERSION\`" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "**Tags pushed:**" >> $GITHUB_STEP_SUMMARY
+          if [[ "$PUSHED" == "true" ]]; then
+            echo "**✅ Image pushed to both registries**" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "**🔍 Build-only (PR / dry-run) — image not pushed**" >> $GITHUB_STEP_SUMMARY
+          fi
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Tags:**" >> $GITHUB_STEP_SUMMARY
           echo '```' >> $GITHUB_STEP_SUMMARY
           echo "${{ steps.meta.outputs.tags }}" >> $GITHUB_STEP_SUMMARY
           echo '```' >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "**Docker Hub:** \`docker pull ${{ secrets.DOCKERHUB_USERNAME }}/${{ env.IMAGE_NAME }}:latest\`" >> $GITHUB_STEP_SUMMARY
-          echo "**GHCR:**       \`docker pull ghcr.io/${{ github.repository_owner }}/${{ env.IMAGE_NAME }}:latest\`" >> $GITHUB_STEP_SUMMARY
+          echo "**Pull commands:**" >> $GITHUB_STEP_SUMMARY
+          echo '```bash' >> $GITHUB_STEP_SUMMARY
+          echo "docker pull ${{ secrets.DOCKERHUB_USERNAME }}/${{ env.IMAGE_NAME }}:$VERSION" >> $GITHUB_STEP_SUMMARY
+          echo "docker pull ghcr.io/${{ github.repository_owner }}/${{ env.IMAGE_NAME }}:$VERSION" >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY

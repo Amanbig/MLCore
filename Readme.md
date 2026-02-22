@@ -57,21 +57,40 @@ docker run -p 8000:8000 mlcore:local
 
 ## CI / CD
 
-On every push to `main` / `master` or a semver tag (`v1.2.3`):
+Three GitHub Actions workflows run automatically:
 
-| Registry | Image |
-|---|---|
-| Docker Hub | `YOUR_USERNAME/mlcore` |
-| GitHub Container Registry | `ghcr.io/YOUR_USERNAME/mlcore` |
+```
+push to main
+    │
+    ├─► lint.yml        — ruff (server) + biome + tsc (client)  [every push / PR]
+    │
+    ├─► tag.yml         — reads version from pyproject.toml
+    │                     creates git tag v<version> if it's new
+    │
+    └─► (tag push v*)
+            │
+            └─► docker.yml  — lint gate → read version → build & push image
+```
 
-**Required repository secrets:**
+### Releasing a new version
+
+1. Bump `version` in `server/pyproject.toml` (e.g. `"0.1.0"` → `"0.2.0"`)
+2. Commit & push to `main`
+3. `tag.yml` detects the new version, auto-creates and pushes tag `v0.2.0`
+4. `docker.yml` triggers on the tag, builds the image, pushes:
+   - `YOUR_USERNAME/mlcore:0.2.0`
+   - `YOUR_USERNAME/mlcore:latest`
+   - `ghcr.io/YOUR_USERNAME/mlcore:0.2.0`
+   - `ghcr.io/YOUR_USERNAME/mlcore:latest`
+
+### Required repository secrets
 
 | Secret | Description |
 |---|---|
 | `DOCKERHUB_USERNAME` | Your Docker Hub username |
-| `DOCKERHUB_TOKEN` | Docker Hub access token (Settings → Security → New Access Token) |
+| `DOCKERHUB_TOKEN` | Docker Hub → Account Settings → Security → New Access Token |
 
-`GITHUB_TOKEN` is provided automatically by GitHub Actions for GHCR.
+`GITHUB_TOKEN` is provided automatically for GHCR.
 
 ---
 

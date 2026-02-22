@@ -61,5 +61,21 @@ where = ["src","."]
 [tool.ruff]
 line-length = 100
 
+[tool.ruff.lint]
+# E/W = pycodestyle, F = pyflakes, I = isort, UP = pyupgrade, B = flake8-bugbear
+select = ["E", "W", "F", "I", "UP", "B"]
+ignore = [
+    "E501",   # line too long — handled by formatter
+    "B008",   # do not perform function calls in argument defaults (FastAPI Depends)
+    "UP007",  # use X | Y instead of Optional — keep compat with 3.10
+]
+
+[tool.ruff.lint.per-file-ignores]
+"migrations/*" = ["E", "F"]   # alembic auto-generated files
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+
 [tool.mypy]
 strict = true

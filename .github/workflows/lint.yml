@@ -1,0 +1,80 @@
+name: Lint
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+    branches: [main, master]
+
+jobs:
+  # ── Python — Ruff ──────────────────────────────────────────────────────────
+  ruff:
+    name: Ruff (Python)
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+
+      - name: Install Ruff
+        run: pip install ruff
+
+      - name: Ruff — lint check
+        run: ruff check server/src --output-format=github
+
+      - name: Ruff — format check
+        run: ruff format server/src --check
+
+  # ── TypeScript / JSX — Biome ───────────────────────────────────────────────
+  biome:
+    name: Biome (Client)
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: client/package-lock.json
+
+      - name: Install dependencies
+        working-directory: client
+        run: npm ci
+
+      - name: Biome — lint check
+        working-directory: client
+        run: npx biome lint .
+
+      - name: Biome — format check
+        working-directory: client
+        run: npx biome format .
+
+  # ── TypeScript — type-check ────────────────────────────────────────────────
+  typecheck:
+    name: TypeScript type-check
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: client/package-lock.json
+
+      - name: Install dependencies
+        working-directory: client
+        run: npm ci
+
+      - name: tsc — type check
+        working-directory: client
+        run: npx tsc --noEmit
