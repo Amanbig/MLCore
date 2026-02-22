@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import {
 	Dialog,
@@ -54,7 +54,6 @@ export function DatasetsPage() {
 	const [isUploadOpen, setIsUploadOpen] = useState(false);
 	const [selectedFile, setSelectedFile] = useState<File | null>(null);
 	const [isUploading, setIsUploading] = useState(false);
-	const fileInputRef = useRef<HTMLInputElement>(null);
 
 	const fetchDatasets = async () => {
 		try {
@@ -159,9 +158,9 @@ export function DatasetsPage() {
 							</DialogHeader>
 
 							<div className="grid gap-4 py-4">
-								<div
+								<label
+									htmlFor="file-upload"
 									className="border-2 border-dashed rounded-lg p-6 flex flex-col items-center justify-center gap-2 cursor-pointer hover:bg-muted/50 transition-colors h-40"
-									onClick={() => fileInputRef.current?.click()}
 								>
 									<FileUp className="w-10 h-10 text-muted-foreground" />
 									<span className="text-sm font-medium text-center">
@@ -175,13 +174,13 @@ export function DatasetsPage() {
 										</span>
 									)}
 									<input
+										id="file-upload"
 										type="file"
-										ref={fileInputRef}
 										className="hidden"
 										accept=".csv,.xlsx,.xls"
 										onChange={handleFileChange}
 									/>
-								</div>
+								</label>
 							</div>
 
 							<DialogFooter>

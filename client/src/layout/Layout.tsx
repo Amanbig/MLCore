@@ -57,6 +57,7 @@ export function Layout() {
 				<div className="flex items-center gap-2 mb-8 px-2">
 					<div className="bg-primary p-1.5 rounded-md">
 						<svg
+							aria-hidden="true"
 							xmlns="http://www.w3.org/2000/svg"
 							viewBox="0 0 24 24"
 							fill="none"
@@ -106,6 +107,7 @@ export function Layout() {
 							<div className="flex items-center gap-2 mb-8 mt-4">
 								<div className="bg-primary p-1.5 rounded-md">
 									<svg
+										aria-hidden="true"
 										xmlns="http://www.w3.org/2000/svg"
 										viewBox="0 0 24 24"
 										fill="none"
