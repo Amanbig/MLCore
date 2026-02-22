@@ -29,5 +29,13 @@ class CreateMLModelRequest(BaseModel):
     file: UploadFile = File(...)
 
 
-class CreateMLModelResponse(MLModelBase):
+class TrainModelRequest(BaseModel):
+    dataset_id: UUID
+    model_algorithm: str
+    target_column: str
+    features: list[str] | None = None
+    hyperparameters: dict = {}
+
+
+class TrainModelResponse(MLModelBase):
     detail: str
