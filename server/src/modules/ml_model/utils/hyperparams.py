@@ -352,9 +352,9 @@ HYPERPARAMETER_SCHEMAS: dict[str, list[HyperparamDef]] = {
         {
             "name": "max_features",
             "type": "select",
-            "default": "1.0",
-            "options": ["1.0", "sqrt", "log2"],
-            "description": "Number of features to consider for best split.",
+            "default": "sqrt",
+            "options": ["sqrt", "log2", "None"],
+            "description": "Number of features to consider for best split. 'None' uses all features.",
         },
         {
             "name": "bootstrap",

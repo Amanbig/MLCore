@@ -475,12 +475,43 @@ export function ModelsPage() {
   const buildPayload = (
     form: typeof EMPTY_FORM,
     hyperparams: Record<string, any>,
+    schemas: HyperparamDef[],
   ) => {
-    // Strip null values for cleaner payload (sklearn ignores None = use default)
+    const schemaMap = Object.fromEntries(schemas.map((s) => [s.name, s]));
     const cleanParams: Record<string, any> = {};
+
     Object.entries(hyperparams).forEach(([k, v]) => {
-      if (v !== null && v !== undefined) cleanParams[k] = v;
+      // Explicit null / "None" string → omit (let sklearn use its default)
+      if (v === null || v === undefined || v === "None" || v === "") return;
+
+      const schema = schemaMap[k];
+      if (schema) {
+        if (schema.type === "int") {
+          const n = parseInt(v, 10);
+          if (!isNaN(n)) cleanParams[k] = n;
+          return;
+        }
+        if (schema.type === "float") {
+          const n = parseFloat(v);
+          if (!isNaN(n)) cleanParams[k] = n;
+          return;
+        }
+        if (schema.type === "bool") {
+          cleanParams[k] = v === true || v === "true";
+          return;
+        }
+        // select — try to cast to number if it looks numeric, else keep as string
+        if (schema.type === "select") {
+          if (v === "None") return; // already handled above
+          const n = Number(v);
+          cleanParams[k] = !isNaN(n) && v !== "" ? n : v;
+          return;
+        }
+      }
+      // fallback: keep as-is
+      cleanParams[k] = v;
     });
+
     return {
       dataset_id: form.dataset_id,
       model_algorithm: form.model_algorithm,
@@ -509,7 +540,7 @@ export function ModelsPage() {
       setIsTraining(true);
       await api.post(
         "/ml_model/train",
-        buildPayload(trainForm, trainHyperparams),
+        buildPayload(trainForm, trainHyperparams, trainSchemas),
       );
       toast.success("Model trained successfully!");
       setIsTrainOpen(false);
@@ -537,7 +568,7 @@ export function ModelsPage() {
       setIsRetraining(true);
       await api.post(
         `/ml_model/${retrainModel.id}/retrain`,
-        buildPayload(retrainForm, retrainHyperparams),
+        buildPayload(retrainForm, retrainHyperparams, retrainSchemas),
       );
       toast.success("Model retrained — new version created!");
       setRetrainModel(null);

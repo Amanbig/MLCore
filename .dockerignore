@@ -1,0 +1,28 @@
+# Version control
+.git
+.gitignore
+
+# Python
+server/.venv
+server/__pycache__
+server/src/__pycache__
+**/__pycache__
+**/*.pyc
+**/*.pyo
+**/*.pyd
+server/mlcore_db.db
+server/uploads/
+
+# Node
+client/node_modules
+client/dist
+
+# IDE / OS
+.vscode
+.idea
+**/.DS_Store
+**/Thumbs.db
+
+# Docs / misc
+*.md
+.github/

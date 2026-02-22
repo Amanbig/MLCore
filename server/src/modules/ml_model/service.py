@@ -87,55 +87,76 @@ class MLModelService:
         model = None
         algo = data.model_algorithm.lower()
 
+        # ── Coerce hyperparameter types ──────────────────────────────────────
+        # The frontend may send everything as strings (e.g. select inputs).
+        # Convert "None"→None, integer strings→int, float strings→float.
+        safe_params: dict = {}
+        for k, v in data.hyperparameters.items():
+            if v == "None" or v is None:
+                continue  # omit — let sklearn use its own default
+            if isinstance(v, str):
+                # try int first, then float, then keep as string
+                try:
+                    safe_params[k] = int(v)
+                    continue
+                except ValueError:
+                    pass
+                try:
+                    safe_params[k] = float(v)
+                    continue
+                except ValueError:
+                    pass
+            safe_params[k] = v
+
         if algo in ["random_forest_classifier", "randomforestclassifier", "random_forest"]:
             from sklearn.ensemble import RandomForestClassifier
 
-            model = RandomForestClassifier(**data.hyperparameters)
+            model = RandomForestClassifier(**safe_params)
 
         elif algo in ["random_forest_regressor", "randomforestregressor"]:
             from sklearn.ensemble import RandomForestRegressor
 
-            model = RandomForestRegressor(**data.hyperparameters)
+            model = RandomForestRegressor(**safe_params)
 
         elif algo in ["logistic_regression", "logisticregression"]:
             from sklearn.linear_model import LogisticRegression
 
-            model = LogisticRegression(**data.hyperparameters)
+            model = LogisticRegression(**safe_params)
 
         elif algo in ["linear_regression", "linearregression"]:
             from sklearn.linear_model import LinearRegression
 
-            model = LinearRegression(**data.hyperparameters)
+            model = LinearRegression(**safe_params)
 
         elif algo in ["ridge", "ridge_regression"]:
             from sklearn.linear_model import Ridge
 
-            model = Ridge(**data.hyperparameters)
+            model = Ridge(**safe_params)
 
         elif algo in ["lasso", "lasso_regression"]:
             from sklearn.linear_model import Lasso
 
-            model = Lasso(**data.hyperparameters)
+            model = Lasso(**safe_params)
 
         elif algo in ["svm", "svc", "support_vector_machine"]:
             from sklearn.svm import SVC
 
-            model = SVC(**data.hyperparameters)
+            model = SVC(**safe_params)
 
         elif algo in ["svr", "support_vector_regressor"]:
             from sklearn.svm import SVR
 
-            model = SVR(**data.hyperparameters)
+            model = SVR(**safe_params)
 
         elif algo in ["decision_tree", "decision_tree_classifier", "decisiontreeclassifier"]:
             from sklearn.tree import DecisionTreeClassifier
 
-            model = DecisionTreeClassifier(**data.hyperparameters)
+            model = DecisionTreeClassifier(**safe_params)
 
         elif algo in ["decision_tree_regressor", "decisiontreeregressor"]:
             from sklearn.tree import DecisionTreeRegressor
 
-            model = DecisionTreeRegressor(**data.hyperparameters)
+            model = DecisionTreeRegressor(**safe_params)
 
         elif algo in [
             "gradient_boosting",
@@ -144,22 +165,22 @@ class MLModelService:
         ]:
             from sklearn.ensemble import GradientBoostingClassifier
 
-            model = GradientBoostingClassifier(**data.hyperparameters)
+            model = GradientBoostingClassifier(**safe_params)
 
         elif algo in ["gradient_boosting_regressor", "gradientboostingregressor"]:
             from sklearn.ensemble import GradientBoostingRegressor
 
-            model = GradientBoostingRegressor(**data.hyperparameters)
+            model = GradientBoostingRegressor(**safe_params)
 
         elif algo in ["knn", "kneighbors", "k_nearest_neighbors"]:
             from sklearn.neighbors import KNeighborsClassifier
 
-            model = KNeighborsClassifier(**data.hyperparameters)
+            model = KNeighborsClassifier(**safe_params)
 
         elif algo in ["naive_bayes", "gaussiannb", "gaussian_naive_bayes"]:
             from sklearn.naive_bayes import GaussianNB
 
-            model = GaussianNB(**data.hyperparameters)
+            model = GaussianNB(**safe_params)
 
         else:
             raise HTTPException(
