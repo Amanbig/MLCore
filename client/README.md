@@ -1,73 +1,129 @@
-# React + TypeScript + Vite
+# ML Core — Client
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+React 19 + TypeScript + Vite frontend for the ML Core platform.
 
-Currently, two official plugins are available:
+## Tech Stack
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+| Layer | Library |
+|---|---|
+| UI framework | React 19 |
+| Build tool | Vite |
+| Language | TypeScript |
+| Styling | Tailwind CSS v4 |
+| Components | shadcn/ui (Radix UI primitives) |
+| Charts | Recharts |
+| HTTP client | Axios |
+| State | Zustand |
+| Linter / Formatter | Biome |
 
-## React Compiler
+---
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+## Prerequisites
 
-## Expanding the ESLint configuration
+- **Node.js** ≥ 18 — [nodejs.org](https://nodejs.org)
+- **npm** ≥ 9 (bundled with Node)
+- ML Core **server** running on `http://localhost:8000`
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+---
 
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
+## Getting Started
 
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
+```bash
+# 1. Install dependencies
+npm install
 
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+# 2. Start the dev server (proxies /api → :8000 automatically)
+npm run dev
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+Open **http://localhost:5173**
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+The Vite dev proxy forwards every `/api/*` request to the FastAPI server — no CORS config needed locally.
 
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+---
+
+## Available Scripts
+
+| Command | Description |
+|---|---|
+| `npm run dev` | Start dev server with HMR at `:5173` |
+| `npm run build` | Type-check + production build → `dist/` |
+| `npm run preview` | Preview the production build locally |
+| `npm run lint` | Biome lint check |
+| `npm run format` | Biome auto-format all files |
+
+---
+
+## Production Build
+
+```bash
+npm run build
 ```
+
+Output goes to `dist/`. In production this folder is copied into `server/static/` and served directly by FastAPI — no separate web server needed.
+
+To manually wire it to the server:
+
+```bash
+# From the repo root
+npm run build --prefix client
+xcopy /E /I client\dist server\static
+```
+
+---
+
+## Project Structure
+
+```
+src/
+├── assets/          Static assets
+├── components/
+│   ├── ui/          shadcn/ui components
+│   └── theme-provider.tsx
+├── hooks/           Custom React hooks
+├── layout/          App shell / sidebar layout
+├── lib/
+│   ├── api.ts       Axios instance (baseURL = /api)
+│   └── utils.ts     cn() and other helpers
+├── pages/
+│   ├── AuthPage.tsx
+│   ├── DashboardPage.tsx
+│   ├── DatasetsPage.tsx
+│   ├── ModelsPage.tsx
+│   └── SettingsPage.tsx
+└── store/
+    └── auth.ts      Zustand auth store
+```
+
+---
+
+## Environment
+
+No `.env` file is required. The API base URL is always `/api` — Vite proxies it in development, and FastAPI serves it directly in production.
+
+If you need to point at a remote server during development, edit `vite.config.ts`:
+
+```ts
+proxy: {
+  "/api": {
+    target: "http://your-remote-server:8000",
+    changeOrigin: true,
+  },
+},
+```
+
+---
+
+## Linting & Formatting
+
+This project uses [Biome](https://biomejs.dev/) instead of ESLint + Prettier.
+
+```bash
+# Check lint
+npm run lint
+
+# Auto-fix formatting
+npm run format
+```
+
+Configuration is in `biome.json`.
