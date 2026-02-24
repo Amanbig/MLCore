@@ -4,6 +4,11 @@ A self-hosted machine learning platform — upload datasets, wrangle data, train
 
 > **One Docker image. One port. No extra services.**
 
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/)
+[![Node.js 18+](https://img.shields.io/badge/node-18+-green.svg)](https://nodejs.org/)
+[![Docker Pulls](https://img.shields.io/docker/pulls/procoder588/mlcore.svg)](https://hub.docker.com/r/procoder588/mlcore)
+
 ---
 
 ## Preview
@@ -253,3 +258,16 @@ MLCore/
 
 - [Server README](server/README.md) — API reference, migration guide, uv commands
 - [Client README](client/README.md) — component structure, Biome, build process
+
+---
+
+## Contributing
+
+Contributions are welcome! Please see the [CONTRIBUTING.md](CONTRIBUTING.md) file for guidelines on how to set up the project locally, run tests, and submit pull requests.
+
+---
+
+## License
+
+This project is licensed under the [MIT License](LICENSE).
+
