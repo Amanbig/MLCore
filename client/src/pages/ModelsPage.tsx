@@ -18,6 +18,7 @@ import {
 	SheetHeader,
 	SheetTitle,
 	SheetDescription,
+	SheetTrigger,
 } from "@/components/ui/sheet";
 import {
 	Card,
@@ -77,6 +78,7 @@ import { toast } from "sonner";
 interface Dataset {
 	id: string;
 	name: string;
+	dataset_metadata?: any;
 }
 
 interface MLModel {
@@ -368,12 +370,30 @@ function TrainFormFields({
 }: {
 	form: typeof EMPTY_FORM;
 	setForm: (f: typeof EMPTY_FORM) => void;
-	datasets: { id: string; name: string }[];
+	datasets: Dataset[];
 	schemas: HyperparamDef[];
 	hyperparams: Record<string, any>;
 	setHyperparams: (h: Record<string, any>) => void;
 	isLoadingSchemas: boolean;
 }) {
+	const [featureSearch, setFeatureSearch] = useState("");
+	
+	const activeDataset = datasets.find((d) => d.id === form.dataset_id);
+	const dtypes = activeDataset?.dataset_metadata?.dtypes ?? {};
+	const allCols = Object.keys(dtypes);
+
+	// Parse current form.features string into array
+	const selectedFeatures = form.features 
+		? form.features.split(',').map(f => f.trim()).filter(Boolean) 
+		: [];
+
+	const toggleFeature = (col: string) => {
+		const newFeatures = selectedFeatures.includes(col)
+			? selectedFeatures.filter(c => c !== col)
+			: [...selectedFeatures, col];
+		setForm({ ...form, features: newFeatures.join(",") });
+	};
+
 	return (
 		<div className="grid gap-4 py-2">
 			{/* Name */}
@@ -461,31 +481,124 @@ function TrainFormFields({
 
 			{/* Target column */}
 			<div className="space-y-1.5">
-				<Label htmlFor="target">
+				<Label>
 					Target Column <span className="text-destructive">*</span>
 				</Label>
-				<Input
-					id="target"
-					placeholder="e.g. price, label, species"
-					value={form.target_column}
-					onChange={(e) => setForm({ ...form, target_column: e.target.value })}
-				/>
+				{allCols.length > 0 ? (
+					<Select
+						value={form.target_column}
+						onValueChange={(v) => {
+							// If they pick a target that is currently a feature, remove it from features
+							let updatedFeatures = selectedFeatures;
+							if (selectedFeatures.includes(v)) {
+								updatedFeatures = selectedFeatures.filter(f => f !== v);
+							}
+							setForm({ ...form, target_column: v, features: updatedFeatures.join(",") });
+						}}
+					>
+						<SelectTrigger>
+							<SelectValue placeholder="Select target..." />
+						</SelectTrigger>
+						<SelectContent>
+							{allCols.map((c) => (
+								<SelectItem key={c} value={c}>
+									{c}
+								</SelectItem>
+							))}
+						</SelectContent>
+					</Select>
+				) : (
+					<Input
+						placeholder="Select a dataset first"
+						disabled
+					/>
+				)}
 			</div>
 
 			{/* Features */}
 			<div className="space-y-1.5">
-				<Label htmlFor="features">
-					Feature Columns{" "}
-					<span className="text-muted-foreground text-xs">
-						(optional, comma-separated)
-					</span>
-				</Label>
-				<Input
-					id="features"
-					placeholder="e.g. col1, col2 — leave blank to use all"
-					value={form.features}
-					onChange={(e) => setForm({ ...form, features: e.target.value })}
-				/>
+				<div className="flex items-center justify-between">
+					<Label>
+						Feature Columns{" "}
+						<span className="text-muted-foreground text-xs">
+							(optional)
+						</span>
+					</Label>
+					{allCols.length > 0 && (
+						<div className="flex gap-2 text-xs">
+							<button
+								type="button"
+								className="text-primary hover:underline"
+								onClick={() => {
+									const featuresOnly = allCols.filter(c => c !== form.target_column);
+									setForm({ ...form, features: featuresOnly.join(",") });
+								}}
+							>
+								All
+							</button>
+							<span className="text-muted-foreground">·</span>
+							<button
+								type="button"
+								className="text-muted-foreground hover:underline"
+								onClick={() => setForm({ ...form, features: "" })}
+							>
+								None
+							</button>
+						</div>
+					)}
+				</div>
+				
+				{allCols.length > 0 ? (
+					<>
+						<Input
+							placeholder="Search features..."
+							value={featureSearch}
+							onChange={(e) => setFeatureSearch(e.target.value)}
+							className="h-8 text-xs"
+						/>
+						<p className="text-xs text-muted-foreground mb-1">
+							Leave explicitly empty to automatically use all non-target columns.
+						</p>
+						<div className="rounded-lg border bg-muted/20 p-2 max-h-40 overflow-y-auto grid grid-cols-2 gap-1">
+							{allCols
+								.filter(c => c !== form.target_column) // Can't use target as feature
+								.filter(c => featureSearch ? c.toLowerCase().includes(featureSearch.toLowerCase()) : true)
+								.map((col) => (
+								<label
+									key={col}
+									className="flex items-center gap-2 px-2 py-1.5 rounded-md hover:bg-muted/50 cursor-pointer text-xs"
+								>
+									<input
+										type="checkbox"
+										className="accent-primary w-3.5 h-3.5 shrink-0"
+										checked={selectedFeatures.includes(col)}
+										onChange={() => toggleFeature(col)}
+									/>
+									<span className="truncate font-mono" title={col}>
+										{col}
+									</span>
+									<Badge
+										variant="outline"
+										className={`ml-auto text-[10px] px-1 py-0 h-4 shrink-0 ${!((dtypes[col] as string)?.includes('int') || (dtypes[col] as string)?.includes('float')) ? "border-amber-500/40 text-amber-400" : "border-blue-500/40 text-blue-400"}`}
+									>
+										{!((dtypes[col] as string)?.includes('int') || (dtypes[col] as string)?.includes('float')) ? "cat" : "num"}
+									</Badge>
+								</label>
+							))}
+						</div>
+						{selectedFeatures.length > 0 && (
+							<p className="text-xs text-primary">
+								{selectedFeatures.length} feature
+								{selectedFeatures.length > 1 ? "s" : ""} selected
+							</p>
+						)}
+					</>
+				) : (
+					<Input
+						placeholder="Select a dataset to pick features"
+						disabled
+					/>
+				)}
 			</div>
 
 			{/* Hyperparameters */}
@@ -503,8 +616,7 @@ function TrainFormFields({
 						</p>
 					)}
 					{!isLoadingSchemas && schemas.length > 0 && (
-						<ScrollArea className="max-h-52 pr-2">
-							<div className="space-y-3">
+						<div className="pr-2 space-y-3">
 								{schemas.map((s) => (
 									<HyperparamField
 										key={s.name}
@@ -515,8 +627,7 @@ function TrainFormFields({
 										}
 									/>
 								))}
-							</div>
-						</ScrollArea>
+						</div>
 					)}
 				</div>
 			)}
@@ -919,20 +1030,23 @@ export function ModelsPage() {
 							className={`w-4 h-4 ${isLoading ? "animate-spin" : ""}`}
 						/>
 					</Button>
-					<Dialog open={isTrainOpen} onOpenChange={setIsTrainOpen}>
-						<DialogTrigger asChild>
+					<Sheet open={isTrainOpen} onOpenChange={setIsTrainOpen}>
+						<SheetTrigger asChild>
 							<Button className="gap-2">
 								<Plus className="w-4 h-4" /> Train Model
 							</Button>
-						</DialogTrigger>
-						<DialogContent className="sm:max-w-[520px] flex flex-col max-h-[85vh] p-0 overflow-hidden">
-							<DialogHeader className="shrink-0 p-6 pb-3">
-								<DialogTitle>Train a New Model</DialogTitle>
-								<DialogDescription>
-									Select a dataset, algorithm, and tune hyperparameters.
-								</DialogDescription>
-							</DialogHeader>
-							<div className="flex-1 overflow-y-auto px-6">
+						</SheetTrigger>
+						<SheetContent className="sm:max-w-[500px] flex flex-col p-0">
+							<div className="p-6 pb-2 shrink-0">
+								<SheetHeader>
+									<SheetTitle>Train New Model</SheetTitle>
+									<SheetDescription>
+										Select an algorithm and map your target column to begin training.
+									</SheetDescription>
+								</SheetHeader>
+							</div>
+
+							<div className="flex-1 overflow-y-auto px-6 pb-6">
 								<TrainFormFields
 									form={trainForm}
 									setForm={setTrainForm}
@@ -943,19 +1057,12 @@ export function ModelsPage() {
 									isLoadingSchemas={isLoadingTrainSchemas}
 								/>
 							</div>
-							<DialogFooter className="shrink-0 border-t border-border/60 px-6 py-4 mt-0">
-								<Button
-									variant="outline"
-									onClick={() => setIsTrainOpen(false)}
-									disabled={isTraining}
-								>
-									Cancel
-								</Button>
-								<Button onClick={handleTrain} disabled={isTraining}>
+							<div className="shrink-0 border-t p-4 bg-background flex flex-col gap-2">
+								<Button onClick={handleTrain} disabled={isTraining} className="w-full">
 									{isTraining ? (
 										<>
 											<Loader2 className="w-4 h-4 mr-2 animate-spin" />{" "}
-											Training...
+											Training Pipeline Active...
 										</>
 									) : (
 										<>
@@ -963,9 +1070,17 @@ export function ModelsPage() {
 										</>
 									)}
 								</Button>
-							</DialogFooter>
-						</DialogContent>
-					</Dialog>
+								<Button
+									variant="outline"
+									onClick={() => setIsTrainOpen(false)}
+									disabled={isTraining}
+									className="w-full"
+								>
+									Cancel
+								</Button>
+							</div>
+						</SheetContent>
+					</Sheet>
 				</div>
 			</div>
 
@@ -1416,21 +1531,23 @@ export function ModelsPage() {
 			</Dialog>
 
 			{/* ── Retrain Dialog ─────────────────────────────────────── */}
-			<Dialog
+			<Sheet
 				open={!!retrainModel}
 				onOpenChange={(o) => !o && setRetrainModel(null)}
 			>
-				<DialogContent className="sm:max-w-[520px] flex flex-col max-h-[85vh] p-0 overflow-hidden">
-					<DialogHeader className="shrink-0 p-6 pb-3">
-						<DialogTitle className="flex items-center gap-2">
-							<FlaskConical className="w-5 h-5" /> Retrain —{" "}
-							{retrainModel?.name}
-						</DialogTitle>
-						<DialogDescription>
-							Creates a new version. Current: v{retrainModel?.version}
-						</DialogDescription>
-					</DialogHeader>
-					<div className="flex-1 overflow-y-auto px-6">
+				<SheetContent className="sm:max-w-[500px] flex flex-col p-0">
+					<div className="p-6 pb-2 shrink-0">
+						<SheetHeader>
+							<SheetTitle className="flex items-center gap-2">
+								<FlaskConical className="w-5 h-5" /> Retrain —{" "}
+								{retrainModel?.name}
+							</SheetTitle>
+							<SheetDescription>
+								Creates a new version. Current: v{retrainModel?.version}
+							</SheetDescription>
+						</SheetHeader>
+					</div>
+					<div className="flex-1 overflow-y-auto px-6 pb-6">
 						<TrainFormFields
 							form={retrainForm}
 							setForm={setRetrainForm}
@@ -1441,15 +1558,8 @@ export function ModelsPage() {
 							isLoadingSchemas={isLoadingRetrainSchemas}
 						/>
 					</div>
-					<DialogFooter className="shrink-0 border-t border-border/60 px-6 py-4">
-						<Button
-							variant="outline"
-							onClick={() => setRetrainModel(null)}
-							disabled={isRetraining}
-						>
-							Cancel
-						</Button>
-						<Button onClick={handleRetrain} disabled={isRetraining}>
+					<div className="shrink-0 border-t p-4 bg-background flex flex-col gap-2">
+						<Button onClick={handleRetrain} disabled={isRetraining} className="w-full">
 							{isRetraining ? (
 								<>
 									<Loader2 className="w-4 h-4 mr-2 animate-spin" />{" "}
@@ -1461,9 +1571,17 @@ export function ModelsPage() {
 								</>
 							)}
 						</Button>
-					</DialogFooter>
-				</DialogContent>
-			</Dialog>
+						<Button
+							variant="outline"
+							onClick={() => setRetrainModel(null)}
+							disabled={isRetraining}
+							className="w-full"
+						>
+							Cancel
+						</Button>
+					</div>
+				</SheetContent>
+			</Sheet>
 
 			{/* ── Lineage Sheet ──────────────────────────────────────── */}
 			<Sheet
