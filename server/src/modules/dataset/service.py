@@ -237,6 +237,22 @@ class DatasetService:
             elif data.strategy == "fill_median":
                 if pd.api.types.is_numeric_dtype(df[c]):
                     df[c] = df[c].fillna(df[c].median())
+            elif data.strategy == "fill_mode":
+                if not df[c].mode().empty:
+                    df[c] = df[c].fillna(df[c].mode()[0])
+            elif data.strategy == "drop_columns":
+                df = df.drop(columns=[c])
+            elif data.strategy == "remove_outliers_iqr":
+                if pd.api.types.is_numeric_dtype(df[c]):
+                    Q1 = df[c].quantile(0.25)
+                    Q3 = df[c].quantile(0.75)
+                    IQR = Q3 - Q1
+                    lower_bound = Q1 - 1.5 * IQR
+                    upper_bound = Q3 + 1.5 * IQR
+                    # To avoid dropping rows with NaN in this context, use fillna(True) on the boolean mask if desired, 
+                    # but typically outliers removal is fine to also drop NaNs or let them be handle elsewhere. Let's keep non-NaNs intact.
+                    mask = (df[c] >= lower_bound) & (df[c] <= upper_bound)
+                    df = df[mask | df[c].isna()]
 
         return self._save_new_dataset_version(db, df, dataset, user_id, "cleaned")
 
@@ -265,6 +281,12 @@ class DatasetService:
                     df[c] = MinMaxScaler().fit_transform(df[[c]])
             elif data.strategy == "label_encoder":
                 df[c] = LabelEncoder().fit_transform(df[c].astype(str))
+            elif data.strategy == "log_transform":
+                if pd.api.types.is_numeric_dtype(df[c]):
+                    import numpy as np
+                    df[c] = np.log1p(df[c].clip(lower=0))
+            elif data.strategy == "one_hot_encoder":
+                df = pd.get_dummies(df, columns=[c], dtype=int)
 
         return self._save_new_dataset_version(db, df, dataset, user_id, "transformed")
 

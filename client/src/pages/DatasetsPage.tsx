@@ -107,12 +107,17 @@ const CLEAN_STRATEGIES = [
 	{ value: "drop_nulls", label: "Drop Nulls" },
 	{ value: "fill_mean", label: "Fill with Mean" },
 	{ value: "fill_median", label: "Fill with Median" },
+	{ value: "fill_mode", label: "Fill with Mode" },
+	{ value: "drop_columns", label: "Drop Columns" },
+	{ value: "remove_outliers_iqr", label: "Remove Outliers (IQR)" },
 ];
 
 const TRANSFORM_STRATEGIES = [
 	{ value: "standard_scaler", label: "Standard Scaler" },
 	{ value: "min_max_scaler", label: "Min-Max Scaler" },
 	{ value: "label_encoder", label: "Label Encoder" },
+	{ value: "one_hot_encoder", label: "One-Hot Encoder (Dummies)" },
+	{ value: "log_transform", label: "Log1p Transform" },
 ];
 
 export function DatasetsPage() {
@@ -285,6 +290,10 @@ export function DatasetsPage() {
 
 	const handleClean = async () => {
 		if (!wrangleDs) return;
+		if (cleanStrategy === "drop_columns" && cleanCols.length === 0) {
+			toast.error("Select at least one column to drop");
+			return;
+		}
 		try {
 			setIsWrangling(true);
 			await api.post(`/dataset/${wrangleDs.id}/clean`, {
@@ -303,9 +312,11 @@ export function DatasetsPage() {
 
 	const handleTransform = async () => {
 		if (!wrangleDs) return;
-		// For label_encoder, require explicit column selection
-		if (transformStrategy === "label_encoder" && transformCols.length === 0) {
-			toast.error("Select at least one column to label encode");
+		if (
+			(transformStrategy === "label_encoder" || transformStrategy === "one_hot_encoder") &&
+			transformCols.length === 0
+		) {
+			toast.error("Select at least one column to encode");
 			return;
 		}
 		const meta = wrangleDs.dataset_metadata;
