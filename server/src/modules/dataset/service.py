@@ -249,7 +249,7 @@ class DatasetService:
                     IQR = Q3 - Q1
                     lower_bound = Q1 - 1.5 * IQR
                     upper_bound = Q3 + 1.5 * IQR
-                    # To avoid dropping rows with NaN in this context, use fillna(True) on the boolean mask if desired, 
+                    # To avoid dropping rows with NaN in this context, use fillna(True) on the boolean mask if desired,
                     # but typically outliers removal is fine to also drop NaNs or let them be handle elsewhere. Let's keep non-NaNs intact.
                     mask = (df[c] >= lower_bound) & (df[c] <= upper_bound)
                     df = df[mask | df[c].isna()]
@@ -284,6 +284,7 @@ class DatasetService:
             elif data.strategy == "log_transform":
                 if pd.api.types.is_numeric_dtype(df[c]):
                     import numpy as np
+
                     df[c] = np.log1p(df[c].clip(lower=0))
             elif data.strategy == "one_hot_encoder":
                 df = pd.get_dummies(df, columns=[c], dtype=int)
@@ -322,7 +323,9 @@ class DatasetService:
             "missing_percentage": (dataset.isnull().mean() * 100).round(2).to_dict(),
             "statistics": dataset.describe().to_dict(),
             "unique_values": dataset.nunique().to_dict(),
-            "correlation": dataset.select_dtypes(include='number').corr().fillna(0).to_dict() if len(dataset.select_dtypes(include='number').columns) > 1 else {},
+            "correlation": dataset.select_dtypes(include="number").corr().fillna(0).to_dict()
+            if len(dataset.select_dtypes(include="number").columns) > 1
+            else {},
             "preview": dataset.head(5).to_dict(orient="records"),
         }
 
@@ -367,23 +370,25 @@ class DatasetService:
         return dataset.corr().to_dict()
 
     @log_execution
-    def get_dataset_data(self, db: Session, dataset_id: UUID, user_id: UUID, page: int = 1, limit: int = 50):
+    def get_dataset_data(
+        self, db: Session, dataset_id: UUID, user_id: UUID, page: int = 1, limit: int = 50
+    ):
         dataset = self.get_dataset(db=db, dataset_id=dataset_id)
         if dataset.user_id != user_id:
             raise HTTPException(status_code=403, detail="Unauthorized")
-        
+
         df, file_obj, loc = self._load_dataframe(db=db, file_id=dataset.file_id)
-        
+
         total_rows = len(df)
         start_idx = (page - 1) * limit
         end_idx = start_idx + limit
-        
+
         sliced_df = df.iloc[start_idx:end_idx].fillna("")
-        
+
         return {
             "data": sliced_df.to_dict(orient="records"),
             "total_rows": total_rows,
             "page": page,
             "limit": limit,
-            "total_pages": (total_rows + limit - 1) // limit if limit > 0 else 0
+            "total_pages": (total_rows + limit - 1) // limit if limit > 0 else 0,
         }
