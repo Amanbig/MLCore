@@ -1,8 +1,7 @@
-from fastapi import APIRouter, Depends, Response, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Response
 from sqlalchemy.orm.session import Session
 
 from src.common.config.config import settings
-
 from src.common.db.session import get_db
 from src.modules.auth.schema import (
     AuthToken,

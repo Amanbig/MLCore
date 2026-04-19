@@ -117,7 +117,8 @@ export function AuthPage() {
 	const [disableSignup, setDisableSignup] = useState(false);
 
 	useEffect(() => {
-		api.get("/auth/config")
+		api
+			.get("/auth/config")
 			.then((res) => {
 				setDisableSignup(res.data.disable_signup);
 			})
@@ -226,9 +227,13 @@ export function AuthPage() {
 					</div>
 
 					<Tabs defaultValue="login" className="w-full">
-						<TabsList className={`grid w-full ${disableSignup ? "grid-cols-1" : "grid-cols-2"}`}>
+						<TabsList
+							className={`grid w-full ${disableSignup ? "grid-cols-1" : "grid-cols-2"}`}
+						>
 							<TabsTrigger value="login">Login</TabsTrigger>
-							{!disableSignup && <TabsTrigger value="signup">Sign Up</TabsTrigger>}
+							{!disableSignup && (
+								<TabsTrigger value="signup">Sign Up</TabsTrigger>
+							)}
 						</TabsList>
 
 						{/* ── Login ── */}
