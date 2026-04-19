@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useAuthStore } from "@/store/auth";
 import { api } from "@/lib/api";
 import { useNavigate } from "react-router-dom";
@@ -114,6 +114,18 @@ export function AuthPage() {
 	const [isLoading, setIsLoading] = useState(false);
 	const [showLoginPw, setShowLoginPw] = useState(false);
 	const [showSignupPw, setShowSignupPw] = useState(false);
+	const [disableSignup, setDisableSignup] = useState(false);
+
+	useEffect(() => {
+		api
+			.get("/auth/config")
+			.then((res) => {
+				setDisableSignup(res.data.disable_signup);
+			})
+			.catch(() => {
+				// Defaults to false on network error
+			});
+	}, []);
 
 	const [loginData, setLoginData] = useState({ email: "", password: "" });
 	const [loginErrors, setLoginErrors] = useState({ email: "", password: "" });
@@ -194,15 +206,16 @@ export function AuthPage() {
 	};
 
 	return (
-		<div className="min-h-screen grid lg:grid-cols-2">
-			<div className="flex flex-col justify-center p-8 sm:p-12 md:p-16 relative">
-				<div className="absolute top-8 left-8 flex items-center gap-2">
-					<div className="bg-primary/20 border border-primary/30 p-1.5 rounded-lg">
-						<Activity className="w-4 h-4 text-primary" />
-					</div>
-					<span className="font-bold text-sm">ML Core</span>
+		<div className="min-h-screen flex items-center justify-center bg-background relative">
+			{/* Brand Logo - Top Left */}
+			<div className="absolute top-8 left-8 flex items-center gap-2">
+				<div className="bg-primary/20 border border-primary/30 p-1.5 rounded-lg">
+					<Activity className="w-4 h-4 text-primary" />
 				</div>
+				<span className="font-bold text-sm">ML Core</span>
+			</div>
 
+			<div className="flex flex-col justify-center p-8 sm:p-12 md:p-16 relative w-full max-w-2xl">
 				<div className="mx-auto w-full max-w-md space-y-6">
 					<div className="space-y-2 text-center">
 						<h1 className="text-3xl font-bold tracking-tight">
@@ -214,9 +227,13 @@ export function AuthPage() {
 					</div>
 
 					<Tabs defaultValue="login" className="w-full">
-						<TabsList className="grid w-full grid-cols-2">
+						<TabsList
+							className={`grid w-full ${disableSignup ? "grid-cols-1" : "grid-cols-2"}`}
+						>
 							<TabsTrigger value="login">Login</TabsTrigger>
-							<TabsTrigger value="signup">Sign Up</TabsTrigger>
+							{!disableSignup && (
+								<TabsTrigger value="signup">Sign Up</TabsTrigger>
+							)}
 						</TabsList>
 
 						{/* ── Login ── */}
@@ -456,25 +473,6 @@ export function AuthPage() {
 						</TabsContent>
 					</Tabs>
 				</div>
-			</div>
-
-			<div className="hidden lg:block relative bg-muted h-full overflow-hidden">
-				<picture>
-					<source
-						srcSet="/front_image_dark.png"
-						media="(prefers-color-scheme: dark)"
-					/>
-					<source
-						srcSet="/front_image_light.png"
-						media="(prefers-color-scheme: light)"
-					/>
-					<img
-						src="/front_image_light.png"
-						alt="ML Core preview"
-						className="absolute inset-0 w-full h-full object-cover object-center"
-					/>
-				</picture>
-				<div className="absolute inset-x-0 bottom-0 h-1/3 bg-gradient-to-t from-background/60 to-transparent z-10" />
 			</div>
 		</div>
 	);

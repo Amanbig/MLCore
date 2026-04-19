@@ -18,6 +18,10 @@ class Settings(BaseSettings):
 
     # Password Hashing Settings
     BCRYPT_ROUNDS: int = 12  # Default: 12 (good balance of security/speed)
+    # Optional Default Admin Seeding
+    DEFAULT_ADMIN_EMAIL: str | None = None
+    DEFAULT_ADMIN_PASSWORD: str | None = None
+    DISABLE_SIGNUP: bool = False
 
     class Config:
         env_file = ".env"

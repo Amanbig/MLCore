@@ -1,6 +1,7 @@
-from fastapi import APIRouter, Depends, Response
+from fastapi import APIRouter, Depends, HTTPException, Response
 from sqlalchemy.orm.session import Session
 
+from src.common.config.config import settings
 from src.common.db.session import get_db
 from src.modules.auth.schema import (
     AuthToken,
@@ -22,10 +23,17 @@ def login(
     return auth_service.login(request=request, response=response, db=db)
 
 
+@router.get("/config")
+def get_auth_config():
+    return {"disable_signup": settings.DISABLE_SIGNUP}
+
+
 @router.post("/signup")
 def signup(
     request: SignupRequest, response: Response, db: Session = Depends(get_db)
 ) -> SignupResponse:
+    if settings.DISABLE_SIGNUP:
+        raise HTTPException(status_code=403, detail="Signup is disabled on this server instance.")
     return auth_service.signup(request=request, response=response, db=db)
 
 

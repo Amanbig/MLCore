@@ -1,6 +1,6 @@
 name: Release
 
-# Runs on every push to main/master (and PRs for lint+build smoke test).
+# Runs ONLY on direct pushes to main/master (not PRs).
 # Single workflow: lint → read version → tag (if new) → build & push.
 # This avoids the GitHub Actions limitation where a GITHUB_TOKEN-pushed
 # tag cannot trigger a separate workflow.
@@ -13,8 +13,6 @@ on:
       - "client/**"
       - "Dockerfile"
       - ".github/workflows/release.yml"
-  pull_request:
-    branches: [main, master]
   workflow_dispatch:
     inputs:
       push_image:

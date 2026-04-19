@@ -86,10 +86,10 @@ src/
 │   ├── api.ts       Axios instance (baseURL = /api)
 │   └── utils.ts     cn() and other helpers
 ├── pages/
-│   ├── AuthPage.tsx
+│   ├── AuthPage.tsx        Login + conditional Sign Up (hidden via server config)
 │   ├── DashboardPage.tsx
-│   ├── DatasetsPage.tsx
-│   ├── ModelsPage.tsx
+│   ├── DatasetsPage.tsx    Dataset explorer with descriptive stats & correlation heatmap
+│   ├── ModelsPage.tsx      Model train / retrain / predict (Sheet-based sidebar UX)
 │   └── SettingsPage.tsx
 └── store/
     └── auth.ts      Zustand auth store
@@ -127,3 +127,18 @@ npm run format
 ```
 
 Configuration is in `biome.json`.
+
+---
+
+## Key Features
+
+### Dynamic Auth
+`AuthPage.tsx` fetches `GET /api/auth/config` on mount. If the server has `DISABLE_SIGNUP=True` set, the Sign Up tab is hidden automatically — no client-side config changes needed.
+
+### Dataset Explorer
+`DatasetsPage.tsx` sidebar includes:
+- **Descriptive statistics table** — count, mean, std, min, 25%, 50%, 75%, max for every numeric column.
+- **Correlation heatmap** — colour-coded matrix (green = positive, red = negative) computed via Pandas `df.corr()` on the backend.
+
+### Model Workflows
+`ModelsPage.tsx` uses `Sheet` sidebars (not Dialogs) for Train, Retrain, and Predict so the workspace stays persistent and non-blocking.
