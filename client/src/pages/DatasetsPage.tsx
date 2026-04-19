@@ -1373,9 +1373,8 @@ export function DatasetsPage() {
 													{(() => {
 														const correlationDict =
 															explorerDs.dataset_metadata?.correlation;
-														const corrCols = correlationDict
-															? Object.keys(correlationDict)
-															: [];
+														if (!correlationDict) return null;
+														const corrCols = Object.keys(correlationDict);
 														if (corrCols.length < 2) return null;
 
 														return (
