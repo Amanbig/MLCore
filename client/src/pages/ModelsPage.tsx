@@ -309,22 +309,25 @@ function PredictInputs({
 				</button>
 			</div>
 
-			{/* Two-column grid */}
-			<div className="grid grid-cols-2 gap-x-4 gap-y-2.5">
+			{/* Form inputs grid */}
+			<div className="rounded-xl border border-border/50 bg-card overflow-hidden divide-y divide-border/50">
 				{filtered.map((col) => (
-					<div key={col} className="space-y-1">
+					<div key={col} className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 p-3 hover:bg-muted/10 transition-colors">
 						<Label
-							className="text-[11px] font-mono text-muted-foreground truncate block"
+							className="text-xs sm:text-sm font-medium font-mono text-muted-foreground sm:w-[40%] shrink-0 truncate flex items-center gap-2"
 							title={col}
 						>
+							<div className="w-1.5 h-1.5 rounded-full bg-primary/40 shrink-0" />
 							{col}
 						</Label>
-						<Input
-							className="h-7 text-xs"
-							placeholder="value"
-							value={inputs[col]}
-							onChange={(e) => onChange(col, e.target.value)}
-						/>
+						<div className="flex-1 min-w-0">
+							<Input
+								className="h-8 text-sm"
+								placeholder={`Enter value...`}
+								value={inputs[col]}
+								onChange={(e) => onChange(col, e.target.value)}
+							/>
+						</div>
 					</div>
 				))}
 			</div>
@@ -1367,8 +1370,8 @@ export function ModelsPage() {
 				</DialogContent>
 			</Dialog>
 
-			{/* ── Predict / Test Dialog ─────────────────────────────── */}
-			<Dialog
+			{/* ── Predict / Test Sheet ─────────────────────────────── */}
+			<Sheet
 				open={!!predictModel}
 				onOpenChange={(o) => {
 					if (!o) {
@@ -1378,22 +1381,24 @@ export function ModelsPage() {
 					}
 				}}
 			>
-				<DialogContent className="sm:max-w-[520px] flex flex-col max-h-[85vh] p-0 overflow-hidden">
-					<DialogHeader className="shrink-0 p-6 pb-3">
-						<DialogTitle className="flex items-center gap-2">
-							<TestTube2 className="w-5 h-5" /> Test — {predictModel?.name}
-							<Badge variant="secondary" className="ml-auto text-xs font-mono">
-								{Object.keys(predictInputs).length} feature
-								{Object.keys(predictInputs).length !== 1 ? "s" : ""}
-							</Badge>
-						</DialogTitle>
-						<DialogDescription>
-							Enter feature values to run a single-row prediction. Target:{" "}
-							<span className="font-medium text-foreground">
-								{predictModel?.outputs}
-							</span>
-						</DialogDescription>
-					</DialogHeader>
+				<SheetContent className="sm:max-w-[500px] flex flex-col p-0">
+					<div className="p-6 pb-2 shrink-0">
+						<SheetHeader>
+							<SheetTitle className="flex items-center gap-2">
+								<TestTube2 className="w-5 h-5" /> Test — {predictModel?.name}
+								<Badge variant="secondary" className="ml-auto text-xs font-mono">
+									{Object.keys(predictInputs).length} feature
+									{Object.keys(predictInputs).length !== 1 ? "s" : ""}
+								</Badge>
+							</SheetTitle>
+							<SheetDescription>
+								Enter feature values to run a single-row prediction. Target:{" "}
+								<span className="font-medium text-foreground">
+									{predictModel?.outputs}
+								</span>
+							</SheetDescription>
+						</SheetHeader>
+					</div>
 
 					<div className="flex-1 overflow-y-auto px-6 pb-2">
 						{/* Input fields */}
@@ -1473,45 +1478,27 @@ export function ModelsPage() {
 						)}
 					</div>
 
-					<div className="shrink-0 border-t border-border/60 px-6 py-4 flex justify-between items-center gap-2">
+					<div className="shrink-0 border-t p-4 bg-background flex flex-col gap-2">
 						{predictResult ? (
-							<>
-								<Button
-									variant="outline"
-									size="sm"
-									onClick={() => setPredictResult(null)}
-								>
-									← Edit inputs
-								</Button>
-								<Button
-									variant="outline"
-									onClick={() => {
-										setPredictModel(null);
-										setPredictResult(null);
-										setPredictInputs({});
-									}}
-								>
-									Close
-								</Button>
-							</>
+							<Button
+								variant="outline"
+								onClick={() => {
+									setPredictModel(null);
+									setPredictResult(null);
+									setPredictInputs({});
+								}}
+								className="w-full"
+							>
+								Close
+							</Button>
 						) : (
 							<>
-								<Button
-									variant="outline"
-									onClick={() => {
-										setPredictModel(null);
-										setPredictResult(null);
-										setPredictInputs({});
-									}}
-									disabled={isPredicting}
-								>
-									Cancel
-								</Button>
 								<Button
 									onClick={handlePredict}
 									disabled={
 										isPredicting || Object.keys(predictInputs).length === 0
 									}
+									className="w-full"
 								>
 									{isPredicting ? (
 										<>
@@ -1524,11 +1511,23 @@ export function ModelsPage() {
 										</>
 									)}
 								</Button>
+								<Button
+									variant="outline"
+									onClick={() => {
+										setPredictModel(null);
+										setPredictResult(null);
+										setPredictInputs({});
+									}}
+									disabled={isPredicting}
+									className="w-full"
+								>
+									Cancel
+								</Button>
 							</>
 						)}
 					</div>
-				</DialogContent>
-			</Dialog>
+				</SheetContent>
+			</Sheet>
 
 			{/* ── Retrain Dialog ─────────────────────────────────────── */}
 			<Sheet
