@@ -367,7 +367,7 @@ export function DatasetsPage() {
 						setTotalRows(res.data.total_rows);
 						setTotalPages(res.data.total_pages);
 					}
-				} catch (err) {
+				} catch (_err) {
 					if (isMounted) toast.error("Failed to load data for preview");
 				} finally {
 					if (isMounted) setLoading(false);
