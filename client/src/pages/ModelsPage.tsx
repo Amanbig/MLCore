@@ -10,7 +10,6 @@ import {
 	DialogTitle,
 	DialogDescription,
 	DialogFooter,
-	DialogTrigger,
 } from "@/components/ui/dialog";
 import {
 	Sheet,
@@ -53,7 +52,6 @@ import {
 	TooltipProvider,
 	TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import {
 	Library,
 	MoreVertical,
@@ -312,7 +310,10 @@ function PredictInputs({
 			{/* Form inputs grid */}
 			<div className="rounded-xl border border-border/50 bg-card overflow-hidden divide-y divide-border/50">
 				{filtered.map((col) => (
-					<div key={col} className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 p-3 hover:bg-muted/10 transition-colors">
+					<div
+						key={col}
+						className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 p-3 hover:bg-muted/10 transition-colors"
+					>
 						<Label
 							className="text-xs sm:text-sm font-medium font-mono text-muted-foreground sm:w-[40%] shrink-0 truncate flex items-center gap-2"
 							title={col}
@@ -380,19 +381,22 @@ function TrainFormFields({
 	isLoadingSchemas: boolean;
 }) {
 	const [featureSearch, setFeatureSearch] = useState("");
-	
+
 	const activeDataset = datasets.find((d) => d.id === form.dataset_id);
 	const dtypes = activeDataset?.dataset_metadata?.dtypes ?? {};
 	const allCols = Object.keys(dtypes);
 
 	// Parse current form.features string into array
-	const selectedFeatures = form.features 
-		? form.features.split(',').map(f => f.trim()).filter(Boolean) 
+	const selectedFeatures = form.features
+		? form.features
+				.split(",")
+				.map((f) => f.trim())
+				.filter(Boolean)
 		: [];
 
 	const toggleFeature = (col: string) => {
 		const newFeatures = selectedFeatures.includes(col)
-			? selectedFeatures.filter(c => c !== col)
+			? selectedFeatures.filter((c) => c !== col)
 			: [...selectedFeatures, col];
 		setForm({ ...form, features: newFeatures.join(",") });
 	};
@@ -494,9 +498,13 @@ function TrainFormFields({
 							// If they pick a target that is currently a feature, remove it from features
 							let updatedFeatures = selectedFeatures;
 							if (selectedFeatures.includes(v)) {
-								updatedFeatures = selectedFeatures.filter(f => f !== v);
+								updatedFeatures = selectedFeatures.filter((f) => f !== v);
 							}
-							setForm({ ...form, target_column: v, features: updatedFeatures.join(",") });
+							setForm({
+								...form,
+								target_column: v,
+								features: updatedFeatures.join(","),
+							});
 						}}
 					>
 						<SelectTrigger>
@@ -511,10 +519,7 @@ function TrainFormFields({
 						</SelectContent>
 					</Select>
 				) : (
-					<Input
-						placeholder="Select a dataset first"
-						disabled
-					/>
+					<Input placeholder="Select a dataset first" disabled />
 				)}
 			</div>
 
@@ -523,9 +528,7 @@ function TrainFormFields({
 				<div className="flex items-center justify-between">
 					<Label>
 						Feature Columns{" "}
-						<span className="text-muted-foreground text-xs">
-							(optional)
-						</span>
+						<span className="text-muted-foreground text-xs">(optional)</span>
 					</Label>
 					{allCols.length > 0 && (
 						<div className="flex gap-2 text-xs">
@@ -533,7 +536,9 @@ function TrainFormFields({
 								type="button"
 								className="text-primary hover:underline"
 								onClick={() => {
-									const featuresOnly = allCols.filter(c => c !== form.target_column);
+									const featuresOnly = allCols.filter(
+										(c) => c !== form.target_column,
+									);
 									setForm({ ...form, features: featuresOnly.join(",") });
 								}}
 							>
@@ -550,7 +555,7 @@ function TrainFormFields({
 						</div>
 					)}
 				</div>
-				
+
 				{allCols.length > 0 ? (
 					<>
 						<Input
@@ -560,34 +565,44 @@ function TrainFormFields({
 							className="h-8 text-xs"
 						/>
 						<p className="text-xs text-muted-foreground mb-1">
-							Leave explicitly empty to automatically use all non-target columns.
+							Leave explicitly empty to automatically use all non-target
+							columns.
 						</p>
 						<div className="rounded-lg border bg-muted/20 p-2 max-h-40 overflow-y-auto grid grid-cols-2 gap-1">
 							{allCols
-								.filter(c => c !== form.target_column) // Can't use target as feature
-								.filter(c => featureSearch ? c.toLowerCase().includes(featureSearch.toLowerCase()) : true)
+								.filter((c) => c !== form.target_column) // Can't use target as feature
+								.filter((c) =>
+									featureSearch
+										? c.toLowerCase().includes(featureSearch.toLowerCase())
+										: true,
+								)
 								.map((col) => (
-								<label
-									key={col}
-									className="flex items-center gap-2 px-2 py-1.5 rounded-md hover:bg-muted/50 cursor-pointer text-xs"
-								>
-									<input
-										type="checkbox"
-										className="accent-primary w-3.5 h-3.5 shrink-0"
-										checked={selectedFeatures.includes(col)}
-										onChange={() => toggleFeature(col)}
-									/>
-									<span className="truncate font-mono" title={col}>
-										{col}
-									</span>
-									<Badge
-										variant="outline"
-										className={`ml-auto text-[10px] px-1 py-0 h-4 shrink-0 ${!((dtypes[col] as string)?.includes('int') || (dtypes[col] as string)?.includes('float')) ? "border-amber-500/40 text-amber-400" : "border-blue-500/40 text-blue-400"}`}
+									<label
+										key={col}
+										className="flex items-center gap-2 px-2 py-1.5 rounded-md hover:bg-muted/50 cursor-pointer text-xs"
 									>
-										{!((dtypes[col] as string)?.includes('int') || (dtypes[col] as string)?.includes('float')) ? "cat" : "num"}
-									</Badge>
-								</label>
-							))}
+										<input
+											type="checkbox"
+											className="accent-primary w-3.5 h-3.5 shrink-0"
+											checked={selectedFeatures.includes(col)}
+											onChange={() => toggleFeature(col)}
+										/>
+										<span className="truncate font-mono" title={col}>
+											{col}
+										</span>
+										<Badge
+											variant="outline"
+											className={`ml-auto text-[10px] px-1 py-0 h-4 shrink-0 ${!((dtypes[col] as string)?.includes("int") || (dtypes[col] as string)?.includes("float")) ? "border-amber-500/40 text-amber-400" : "border-blue-500/40 text-blue-400"}`}
+										>
+											{!(
+												(dtypes[col] as string)?.includes("int") ||
+												(dtypes[col] as string)?.includes("float")
+											)
+												? "cat"
+												: "num"}
+										</Badge>
+									</label>
+								))}
 						</div>
 						{selectedFeatures.length > 0 && (
 							<p className="text-xs text-primary">
@@ -597,10 +612,7 @@ function TrainFormFields({
 						)}
 					</>
 				) : (
-					<Input
-						placeholder="Select a dataset to pick features"
-						disabled
-					/>
+					<Input placeholder="Select a dataset to pick features" disabled />
 				)}
 			</div>
 
@@ -620,16 +632,16 @@ function TrainFormFields({
 					)}
 					{!isLoadingSchemas && schemas.length > 0 && (
 						<div className="pr-2 space-y-3">
-								{schemas.map((s) => (
-									<HyperparamField
-										key={s.name}
-										def={s}
-										value={hyperparams[s.name]}
-										onChange={(v) =>
-											setHyperparams({ ...hyperparams, [s.name]: v })
-										}
-									/>
-								))}
+							{schemas.map((s) => (
+								<HyperparamField
+									key={s.name}
+									def={s}
+									value={hyperparams[s.name]}
+									onChange={(v) =>
+										setHyperparams({ ...hyperparams, [s.name]: v })
+									}
+								/>
+							))}
 						</div>
 					)}
 				</div>
@@ -1044,7 +1056,8 @@ export function ModelsPage() {
 								<SheetHeader>
 									<SheetTitle>Train New Model</SheetTitle>
 									<SheetDescription>
-										Select an algorithm and map your target column to begin training.
+										Select an algorithm and map your target column to begin
+										training.
 									</SheetDescription>
 								</SheetHeader>
 							</div>
@@ -1061,11 +1074,15 @@ export function ModelsPage() {
 								/>
 							</div>
 							<div className="shrink-0 border-t p-4 bg-background flex flex-col gap-2">
-								<Button onClick={handleTrain} disabled={isTraining} className="w-full">
+								<Button
+									onClick={handleTrain}
+									disabled={isTraining}
+									className="w-full"
+								>
 									{isTraining ? (
 										<>
-											<Loader2 className="w-4 h-4 mr-2 animate-spin" />{" "}
-											Training Pipeline Active...
+											<Loader2 className="w-4 h-4 mr-2 animate-spin" /> Training
+											Pipeline Active...
 										</>
 									) : (
 										<>
@@ -1386,7 +1403,10 @@ export function ModelsPage() {
 						<SheetHeader>
 							<SheetTitle className="flex items-center gap-2">
 								<TestTube2 className="w-5 h-5" /> Test — {predictModel?.name}
-								<Badge variant="secondary" className="ml-auto text-xs font-mono">
+								<Badge
+									variant="secondary"
+									className="ml-auto text-xs font-mono"
+								>
 									{Object.keys(predictInputs).length} feature
 									{Object.keys(predictInputs).length !== 1 ? "s" : ""}
 								</Badge>
@@ -1558,7 +1578,11 @@ export function ModelsPage() {
 						/>
 					</div>
 					<div className="shrink-0 border-t p-4 bg-background flex flex-col gap-2">
-						<Button onClick={handleRetrain} disabled={isRetraining} className="w-full">
+						<Button
+							onClick={handleRetrain}
+							disabled={isRetraining}
+							className="w-full"
+						>
 							{isRetraining ? (
 								<>
 									<Loader2 className="w-4 h-4 mr-2 animate-spin" />{" "}

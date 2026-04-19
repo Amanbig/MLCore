@@ -322,6 +322,7 @@ class DatasetService:
             "missing_percentage": (dataset.isnull().mean() * 100).round(2).to_dict(),
             "statistics": dataset.describe().to_dict(),
             "unique_values": dataset.nunique().to_dict(),
+            "correlation": dataset.select_dtypes(include='number').corr().fillna(0).to_dict() if len(dataset.select_dtypes(include='number').columns) > 1 else {},
             "preview": dataset.head(5).to_dict(orient="records"),
         }
 
