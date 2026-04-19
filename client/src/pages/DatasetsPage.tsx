@@ -132,9 +132,9 @@ export function DatasetsPage() {
 
 	// Explorer sheet state
 	const [explorerDs, setExplorerDs] = useState<Dataset | null>(null);
+	const [explorerTab, setExplorerTab] = useState("preview");
 
-	// Wrangle dialog state
-	const [wrangleDs, setWrangleDs] = useState<Dataset | null>(null);
+	// Wrangle tool state (integrated into Explorer)
 	const [isWrangling, setIsWrangling] = useState(false);
 	const [cleanStrategy, setCleanStrategy] = useState("drop_nulls");
 	const [cleanCols, setCleanCols] = useState<string[]>([]);
@@ -291,19 +291,19 @@ export function DatasetsPage() {
 	};
 
 	const handleClean = async () => {
-		if (!wrangleDs) return;
+		if (!explorerDs) return;
 		if (cleanStrategy === "drop_columns" && cleanCols.length === 0) {
 			toast.error("Select at least one column to drop");
 			return;
 		}
 		try {
 			setIsWrangling(true);
-			await api.post(`/dataset/${wrangleDs.id}/clean`, {
+			await api.post(`/dataset/${explorerDs.id}/clean`, {
 				strategy: cleanStrategy,
 				columns: cleanCols.length > 0 ? cleanCols : undefined,
 			});
 			toast.success("Dataset cleaned — new version created!");
-			setWrangleDs(null);
+			setExplorerDs(null);
 			await fetchDatasets();
 		} catch (error: any) {
 			toast.error(error.response?.data?.detail || "Clean failed");
@@ -313,7 +313,7 @@ export function DatasetsPage() {
 	};
 
 	const handleTransform = async () => {
-		if (!wrangleDs) return;
+		if (!explorerDs) return;
 		if (
 			(transformStrategy === "label_encoder" || transformStrategy === "one_hot_encoder") &&
 			transformCols.length === 0
@@ -321,7 +321,7 @@ export function DatasetsPage() {
 			toast.error("Select at least one column to encode");
 			return;
 		}
-		const meta = wrangleDs.dataset_metadata;
+		const meta = explorerDs.dataset_metadata;
 		const allCols = meta?.dtypes ? Object.keys(meta.dtypes) : [];
 		if (allCols.length === 0) {
 			toast.error("No columns found in dataset metadata");
@@ -329,12 +329,12 @@ export function DatasetsPage() {
 		}
 		try {
 			setIsWrangling(true);
-			await api.post(`/dataset/${wrangleDs.id}/transform`, {
+			await api.post(`/dataset/${explorerDs.id}/transform`, {
 				strategy: transformStrategy,
 				columns: transformCols.length > 0 ? transformCols : allCols,
 			});
 			toast.success("Dataset transformed — new version created!");
-			setWrangleDs(null);
+			setExplorerDs(null);
 			await fetchDatasets();
 		} catch (error: any) {
 			toast.error(error.response?.data?.detail || "Transform failed");
@@ -665,7 +665,7 @@ export function DatasetsPage() {
 										</DropdownMenuItem>
 										<DropdownMenuItem
 											className="gap-2"
-											onClick={() => setWrangleDs(ds)}
+											onClick={() => { setExplorerDs(ds); setExplorerTab("wrangle"); }}
 										>
 											<Wand2 className="w-4 h-4" /> Wrangle
 										</DropdownMenuItem>
@@ -760,7 +760,7 @@ export function DatasetsPage() {
 									variant="ghost"
 									size="sm"
 									className="flex-1 gap-2 text-muted-foreground hover:text-primary"
-									onClick={() => setWrangleDs(ds)}
+									onClick={() => { setExplorerDs(ds); setExplorerTab("wrangle"); }}
 								>
 									<Wand2 className="w-4 h-4" /> Wrangle
 								</Button>
@@ -990,8 +990,8 @@ export function DatasetsPage() {
 								))}
 							</div>
 
-							{/* Tabs: Preview / Columns / Stats */}
-							<Tabs defaultValue="preview">
+							{/* Tabs: Preview / Columns / Stats / Wrangle */}
+							<Tabs value={explorerTab} onValueChange={setExplorerTab}>
 								<TabsList className="mb-3 w-full">
 									<TabsTrigger value="preview" className="flex-1">
 										Preview
@@ -1001,6 +1001,9 @@ export function DatasetsPage() {
 									</TabsTrigger>
 									<TabsTrigger value="stats" className="flex-1">
 										Statistics
+									</TabsTrigger>
+									<TabsTrigger value="wrangle" className="flex-1">
+										Wrangle
 									</TabsTrigger>
 								</TabsList>
 
@@ -1300,19 +1303,310 @@ export function DatasetsPage() {
 										);
 									})()}
 								</TabsContent>
+								<TabsContent value="wrangle">
+									<div className="rounded-xl border bg-card text-card-foreground shadow-sm p-5 space-y-4">
+										<div>
+											<h3 className="text-lg font-semibold flex items-center gap-2">
+												<Wand2 className="w-5 h-5" /> Data Pipeline
+											</h3>
+											<p className="text-sm text-muted-foreground">
+												Configurations set here execute on the backend, generating a cleanly formatted derivative version of your dataset.
+											</p>
+										</div>
+										<Tabs defaultValue="clean" className="mt-2 w-full">
+											<TabsList className="w-full">
+												<TabsTrigger value="clean" className="flex-1">
+													Clean
+												</TabsTrigger>
+												<TabsTrigger value="transform" className="flex-1">
+													Transform
+												</TabsTrigger>
+											</TabsList>
+
+											{/* ── Clean tab ── */}
+											<TabsContent value="clean" className="space-y-4 pt-4 pb-2">
+												<div className="space-y-1.5">
+													<Label>Strategy</Label>
+													<Select
+														value={cleanStrategy}
+														onValueChange={setCleanStrategy}
+													>
+														<SelectTrigger>
+															<SelectValue />
+														</SelectTrigger>
+														<SelectContent>
+															{CLEAN_STRATEGIES.map((s) => (
+																<SelectItem key={s.value} value={s.value}>
+																	{s.label}
+																</SelectItem>
+															))}
+														</SelectContent>
+													</Select>
+												</div>
+
+												{/* Column picker for clean */}
+												{(() => {
+													const dtypes = explorerDs?.dataset_metadata?.dtypes ?? {};
+													const allCols = Object.keys(dtypes);
+													if (allCols.length === 0) return null;
+													const toggleCol = (col: string) =>
+														setCleanCols((prev) =>
+															prev.includes(col)
+																? prev.filter((c) => c !== col)
+																: [...prev, col],
+														);
+													const filteredCols = cleanSearch ? allCols.filter(c => c.toLowerCase().includes(cleanSearch.toLowerCase())) : allCols;
+													return (
+														<div className="space-y-1.5">
+															<div className="flex items-center justify-between">
+																<Label className="text-sm">Columns</Label>
+																<div className="flex gap-2 text-xs">
+																	<button
+																		type="button"
+																		className="text-primary hover:underline"
+																		onClick={() => setCleanCols(allCols)}
+																	>
+																		All
+																	</button>
+																	<span className="text-muted-foreground">·</span>
+																	<button
+																		type="button"
+																		className="text-muted-foreground hover:underline"
+																		onClick={() => setCleanCols([])}
+																	>
+																		None
+																	</button>
+																</div>
+															</div>
+															<Input
+																placeholder="Search columns..."
+																value={cleanSearch}
+																onChange={(e) => setCleanSearch(e.target.value)}
+																className="h-8 text-xs"
+															/>
+															<p className="text-xs text-muted-foreground">
+																Leave all unselected to apply to every column.
+															</p>
+															<div className="rounded-lg border bg-muted/20 p-2 max-h-40 overflow-y-auto grid grid-cols-2 gap-1">
+																{filteredCols.map((col) => (
+																	<label
+																		key={col}
+																		className="flex items-center gap-2 px-2 py-1.5 rounded-md hover:bg-muted/50 cursor-pointer text-xs"
+																	>
+																		<input
+																			type="checkbox"
+																			className="accent-primary w-3.5 h-3.5 shrink-0"
+																			checked={cleanCols.includes(col)}
+																			onChange={() => toggleCol(col)}
+																		/>
+																		<span className="truncate font-mono" title={col}>
+																			{col}
+																		</span>
+																		<span className="ml-auto text-muted-foreground shrink-0">
+																			{dtypes[col]}
+																		</span>
+																	</label>
+																))}
+															</div>
+															{cleanCols.length > 0 && (
+																<p className="text-xs text-primary">
+																	{cleanCols.length} column
+																	{cleanCols.length > 1 ? "s" : ""} selected
+																</p>
+															)}
+														</div>
+													);
+												})()}
+
+												<div className="flex justify-end pt-2 pb-1">
+													<Button onClick={handleClean} disabled={isWrangling}>
+														{isWrangling ? (
+															<>
+																<Loader2 className="w-4 h-4 mr-2 animate-spin" />{" "}
+																Executing Pipeline...
+															</>
+														) : (
+															"Apply Clean"
+														)}
+													</Button>
+												</div>
+											</TabsContent>
+
+											{/* ── Transform tab ── */}
+											<TabsContent value="transform" className="space-y-4 pt-4 pb-2">
+												<div className="space-y-1.5">
+													<Label>Strategy</Label>
+													<Select
+														value={transformStrategy}
+														onValueChange={(v) => {
+															setTransformStrategy(v);
+															const dtypes = explorerDs?.dataset_metadata?.dtypes ?? {};
+															if (v === "label_encoder") {
+																const catCols = Object.entries(dtypes)
+																	.filter(
+																		([, t]) =>
+																			!(t as string).includes("int") &&
+																			!(t as string).includes("float"),
+																	)
+																	.map(([c]) => c);
+																setTransformCols(catCols);
+															} else {
+																const numCols = Object.entries(dtypes)
+																	.filter(
+																		([, t]) =>
+																			(t as string).includes("int") ||
+																			(t as string).includes("float"),
+																	)
+																	.map(([c]) => c);
+																setTransformCols(numCols);
+															}
+														}}
+													>
+														<SelectTrigger>
+															<SelectValue />
+														</SelectTrigger>
+														<SelectContent>
+															{TRANSFORM_STRATEGIES.map((s) => (
+																<SelectItem key={s.value} value={s.value}>
+																	{s.label}
+																</SelectItem>
+															))}
+														</SelectContent>
+													</Select>
+													<p className="text-xs text-muted-foreground">
+														{transformStrategy === "label_encoder"
+															? "Encodes text/category columns as integers. Select the columns to encode."
+															: "Scales numeric columns. Select which columns to scale, or leave all selected."}
+													</p>
+												</div>
+
+												{/* Column picker for transform */}
+												{(() => {
+													const dtypes = explorerDs?.dataset_metadata?.dtypes ?? {};
+													const isLabelEncode = transformStrategy === "label_encoder" || transformStrategy === "one_hot_encoder";
+
+													const eligibleCols = isLabelEncode
+														? Object.keys(dtypes)
+														: Object.entries(dtypes)
+																.filter(
+																	([, t]) =>
+																		(t as string).includes("int") ||
+																		(t as string).includes("float"),
+																)
+																.map(([c]) => c);
+
+													if (eligibleCols.length === 0)
+														return (
+															<p className="text-xs text-muted-foreground">
+																No eligible columns found.
+															</p>
+														);
+
+													const toggleCol = (col: string) =>
+														setTransformCols((prev) =>
+															prev.includes(col)
+																? prev.filter((c) => c !== col)
+																: [...prev, col],
+														);
+
+													const filteredCols = transformSearch ? eligibleCols.filter(c => c.toLowerCase().includes(transformSearch.toLowerCase())) : eligibleCols;
+
+													return (
+														<div className="space-y-1.5">
+															<div className="flex items-center justify-between">
+																<Label className="text-sm">
+																	Columns
+																	{isLabelEncode && (
+																		<span className="text-destructive ml-1">*</span>
+																	)}
+																</Label>
+																<div className="flex gap-2 text-xs">
+																	<button
+																		type="button"
+																		className="text-primary hover:underline"
+																		onClick={() => setTransformCols(eligibleCols)}
+																	>
+																		All
+																	</button>
+																	<span className="text-muted-foreground">·</span>
+																	<button
+																		type="button"
+																		className="text-muted-foreground hover:underline"
+																		onClick={() => setTransformCols([])}
+																	>
+																		None
+																	</button>
+																</div>
+															</div>
+															<Input
+																placeholder="Search columns..."
+																value={transformSearch}
+																onChange={(e) => setTransformSearch(e.target.value)}
+																className="h-8 text-xs"
+															/>
+															<div className="rounded-lg border bg-muted/20 p-2 max-h-44 overflow-y-auto grid grid-cols-2 gap-1">
+																{filteredCols.map((col) => {
+																	const dtype = dtypes[col] as string;
+																	const isCat =
+																		!dtype.includes("int") && !dtype.includes("float");
+																	return (
+																		<label
+																			key={col}
+																			className="flex items-center gap-2 px-2 py-1.5 rounded-md hover:bg-muted/50 cursor-pointer text-xs"
+																		>
+																			<input
+																				type="checkbox"
+																				className="accent-primary w-3.5 h-3.5 shrink-0"
+																				checked={transformCols.includes(col)}
+																				onChange={() => toggleCol(col)}
+																			/>
+																			<span className="truncate font-mono" title={col}>
+																				{col}
+																			</span>
+																			<Badge
+																				variant="outline"
+																				className={`ml-auto text-[10px] px-1 py-0 h-4 shrink-0 ${isCat ? "border-amber-500/40 text-amber-400" : "border-blue-500/40 text-blue-400"}`}
+																			>
+																				{isCat ? "cat" : "num"}
+																			</Badge>
+																		</label>
+																	);
+																})}
+															</div>
+															{transformCols.length > 0 ? (
+																<p className="text-xs text-primary">
+																	{transformCols.length} column
+																	{transformCols.length > 1 ? "s" : ""} selected
+																</p>
+															) : isLabelEncode ? (
+																<p className="text-xs text-destructive">
+																	At least one column must be selected
+																</p>
+															) : null}
+														</div>
+													);
+												})()}
+
+												<div className="flex justify-end pt-2 pb-1">
+													<Button onClick={handleTransform} disabled={isWrangling}>
+														{isWrangling ? (
+															<>
+																<Loader2 className="w-4 h-4 mr-2 animate-spin" />{" "}
+																Executing Pipeline...
+															</>
+														) : (
+															"Apply Transform"
+														)}
+													</Button>
+												</div>
+											</TabsContent>
+										</Tabs>
+									</div>
+								</TabsContent>
 							</Tabs>
 							</div>
 
 							<div className="mt-4 pt-4 border-t flex gap-2 shrink-0 bg-background">
-								<Button
-									className="gap-2 flex-1 shadow-sm"
-									onClick={() => {
-										setWrangleDs(explorerDs);
-										setExplorerDs(null);
-									}}
-								>
-									<Wand2 className="w-4 h-4" /> Wrangle
-								</Button>
 								<Button
 									variant="outline"
 									className="gap-2 shadow-sm"
@@ -1321,354 +1615,20 @@ export function DatasetsPage() {
 										setExplorerDs(null);
 									}}
 								>
-									<Pencil className="w-4 h-4" /> Edit
+									<Pencil className="w-4 h-4" /> Edit Details
 								</Button>
 								<Button
 									variant="outline"
 									className="gap-2 shadow-sm"
 									onClick={() => handleRefresh(explorerDs.id, explorerDs.name)}
 								>
-									<RefreshCw className="w-4 h-4" /> Refresh
+									<RefreshCw className="w-4 h-4" /> Hard Refresh
 								</Button>
 							</div>
 						</>
 					)}
 				</SheetContent>
 			</Sheet>
-
-			{/* ── Wrangle Dialog (Clean & Transform) ──────────────────── */}
-			<Dialog
-				open={!!wrangleDs}
-				onOpenChange={(o) => {
-					if (!o) {
-						setWrangleDs(null);
-						setCleanCols([]);
-						setTransformCols([]);
-						setTransformStrategy("standard_scaler");
-						setCleanStrategy("drop_nulls");
-					}
-				}}
-			>
-				<DialogContent className="sm:max-w-[500px] flex flex-col max-h-[85vh] p-0 overflow-hidden">
-					<DialogHeader className="shrink-0 p-6 pb-3">
-						<DialogTitle className="flex items-center gap-2">
-							<Wand2 className="w-5 h-5" /> Wrangle — {wrangleDs?.name}
-						</DialogTitle>
-						<DialogDescription>
-							A new versioned dataset is created after each operation.
-						</DialogDescription>
-					</DialogHeader>
-
-					<div className="flex-1 overflow-y-auto px-6">
-						<Tabs defaultValue="clean" className="mt-2">
-							<TabsList className="w-full">
-								<TabsTrigger value="clean" className="flex-1">
-									Clean
-								</TabsTrigger>
-								<TabsTrigger value="transform" className="flex-1">
-									Transform
-								</TabsTrigger>
-							</TabsList>
-
-							{/* ── Clean tab ── */}
-							<TabsContent value="clean" className="space-y-4 pt-4 pb-2">
-								<div className="space-y-1.5">
-									<Label>Strategy</Label>
-									<Select
-										value={cleanStrategy}
-										onValueChange={setCleanStrategy}
-									>
-										<SelectTrigger>
-											<SelectValue />
-										</SelectTrigger>
-										<SelectContent>
-											{CLEAN_STRATEGIES.map((s) => (
-												<SelectItem key={s.value} value={s.value}>
-													{s.label}
-												</SelectItem>
-											))}
-										</SelectContent>
-									</Select>
-								</div>
-
-								{/* Column picker for clean */}
-								{(() => {
-									const dtypes = wrangleDs?.dataset_metadata?.dtypes ?? {};
-									const allCols = Object.keys(dtypes);
-									if (allCols.length === 0) return null;
-									const toggleCol = (col: string) =>
-										setCleanCols((prev) =>
-											prev.includes(col)
-												? prev.filter((c) => c !== col)
-												: [...prev, col],
-										);
-									const filteredCols = cleanSearch ? allCols.filter(c => c.toLowerCase().includes(cleanSearch.toLowerCase())) : allCols;
-									return (
-										<div className="space-y-1.5">
-											<div className="flex items-center justify-between">
-												<Label className="text-sm">Columns</Label>
-												<div className="flex gap-2 text-xs">
-													<button
-														type="button"
-														className="text-primary hover:underline"
-														onClick={() => setCleanCols(allCols)}
-													>
-														All
-													</button>
-													<span className="text-muted-foreground">·</span>
-													<button
-														type="button"
-														className="text-muted-foreground hover:underline"
-														onClick={() => setCleanCols([])}
-													>
-														None
-													</button>
-												</div>
-											</div>
-											<Input
-												placeholder="Search columns..."
-												value={cleanSearch}
-												onChange={(e) => setCleanSearch(e.target.value)}
-												className="h-8 text-xs"
-											/>
-											<p className="text-xs text-muted-foreground">
-												Leave all unselected to apply to every column.
-											</p>
-											<div className="rounded-lg border bg-muted/20 p-2 max-h-40 overflow-y-auto grid grid-cols-2 gap-1">
-												{filteredCols.map((col) => (
-													<label
-														key={col}
-														className="flex items-center gap-2 px-2 py-1.5 rounded-md hover:bg-muted/50 cursor-pointer text-xs"
-													>
-														<input
-															type="checkbox"
-															className="accent-primary w-3.5 h-3.5 shrink-0"
-															checked={cleanCols.includes(col)}
-															onChange={() => toggleCol(col)}
-														/>
-														<span className="truncate font-mono" title={col}>
-															{col}
-														</span>
-														<span className="ml-auto text-muted-foreground shrink-0">
-															{dtypes[col]}
-														</span>
-													</label>
-												))}
-											</div>
-											{cleanCols.length > 0 && (
-												<p className="text-xs text-primary">
-													{cleanCols.length} column
-													{cleanCols.length > 1 ? "s" : ""} selected
-												</p>
-											)}
-										</div>
-									);
-								})()}
-
-								<div className="flex justify-end gap-2 pt-2 pb-1">
-									<Button
-										variant="outline"
-										onClick={() => setWrangleDs(null)}
-										disabled={isWrangling}
-									>
-										Cancel
-									</Button>
-									<Button onClick={handleClean} disabled={isWrangling}>
-										{isWrangling ? (
-											<>
-												<Loader2 className="w-4 h-4 mr-2 animate-spin" />{" "}
-												Cleaning...
-											</>
-										) : (
-											"Apply Clean"
-										)}
-									</Button>
-								</div>
-							</TabsContent>
-
-							{/* ── Transform tab ── */}
-							<TabsContent value="transform" className="space-y-4 pt-4 pb-2">
-								<div className="space-y-1.5">
-									<Label>Strategy</Label>
-									<Select
-										value={transformStrategy}
-										onValueChange={(v) => {
-											setTransformStrategy(v);
-											// Auto-select sensible defaults when switching strategy
-											const dtypes = wrangleDs?.dataset_metadata?.dtypes ?? {};
-											if (v === "label_encoder") {
-												// Pre-select categorical (non-numeric) columns
-												const catCols = Object.entries(dtypes)
-													.filter(
-														([, t]) =>
-															!(t as string).includes("int") &&
-															!(t as string).includes("float"),
-													)
-													.map(([c]) => c);
-												setTransformCols(catCols);
-											} else {
-												// Pre-select numeric columns for scalers
-												const numCols = Object.entries(dtypes)
-													.filter(
-														([, t]) =>
-															(t as string).includes("int") ||
-															(t as string).includes("float"),
-													)
-													.map(([c]) => c);
-												setTransformCols(numCols);
-											}
-										}}
-									>
-										<SelectTrigger>
-											<SelectValue />
-										</SelectTrigger>
-										<SelectContent>
-											{TRANSFORM_STRATEGIES.map((s) => (
-												<SelectItem key={s.value} value={s.value}>
-													{s.label}
-												</SelectItem>
-											))}
-										</SelectContent>
-									</Select>
-									<p className="text-xs text-muted-foreground">
-										{transformStrategy === "label_encoder"
-											? "Encodes text/category columns as integers. Select the columns to encode."
-											: "Scales numeric columns. Select which columns to scale, or leave all selected."}
-									</p>
-								</div>
-
-								{/* Column picker for transform */}
-								{(() => {
-									const dtypes = wrangleDs?.dataset_metadata?.dtypes ?? {};
-									const isLabelEncode = transformStrategy === "label_encoder";
-
-									// For label encoder show all cols, for scalers show only numeric
-									const eligibleCols = isLabelEncode
-										? Object.keys(dtypes)
-										: Object.entries(dtypes)
-												.filter(
-													([, t]) =>
-														(t as string).includes("int") ||
-														(t as string).includes("float"),
-												)
-												.map(([c]) => c);
-
-									if (eligibleCols.length === 0)
-										return (
-											<p className="text-xs text-muted-foreground">
-												No eligible columns found.
-											</p>
-										);
-
-									const toggleCol = (col: string) =>
-										setTransformCols((prev) =>
-											prev.includes(col)
-												? prev.filter((c) => c !== col)
-												: [...prev, col],
-										);
-
-									const filteredCols = transformSearch ? eligibleCols.filter(c => c.toLowerCase().includes(transformSearch.toLowerCase())) : eligibleCols;
-
-									return (
-										<div className="space-y-1.5">
-											<div className="flex items-center justify-between">
-												<Label className="text-sm">
-													Columns
-													{isLabelEncode && (
-														<span className="text-destructive ml-1">*</span>
-													)}
-												</Label>
-												<div className="flex gap-2 text-xs">
-													<button
-														type="button"
-														className="text-primary hover:underline"
-														onClick={() => setTransformCols(eligibleCols)}
-													>
-														All
-													</button>
-													<span className="text-muted-foreground">·</span>
-													<button
-														type="button"
-														className="text-muted-foreground hover:underline"
-														onClick={() => setTransformCols([])}
-													>
-														None
-													</button>
-												</div>
-											</div>
-											<Input
-												placeholder="Search columns..."
-												value={transformSearch}
-												onChange={(e) => setTransformSearch(e.target.value)}
-												className="h-8 text-xs"
-											/>
-											<div className="rounded-lg border bg-muted/20 p-2 max-h-44 overflow-y-auto grid grid-cols-2 gap-1">
-												{filteredCols.map((col) => {
-													const dtype = dtypes[col] as string;
-													const isCat =
-														!dtype.includes("int") && !dtype.includes("float");
-													return (
-														<label
-															key={col}
-															className="flex items-center gap-2 px-2 py-1.5 rounded-md hover:bg-muted/50 cursor-pointer text-xs"
-														>
-															<input
-																type="checkbox"
-																className="accent-primary w-3.5 h-3.5 shrink-0"
-																checked={transformCols.includes(col)}
-																onChange={() => toggleCol(col)}
-															/>
-															<span className="truncate font-mono" title={col}>
-																{col}
-															</span>
-															<Badge
-																variant="outline"
-																className={`ml-auto text-[10px] px-1 py-0 h-4 shrink-0 ${isCat ? "border-amber-500/40 text-amber-400" : "border-blue-500/40 text-blue-400"}`}
-															>
-																{isCat ? "cat" : "num"}
-															</Badge>
-														</label>
-													);
-												})}
-											</div>
-											{transformCols.length > 0 ? (
-												<p className="text-xs text-primary">
-													{transformCols.length} column
-													{transformCols.length > 1 ? "s" : ""} selected
-												</p>
-											) : isLabelEncode ? (
-												<p className="text-xs text-destructive">
-													At least one column must be selected
-												</p>
-											) : null}
-										</div>
-									);
-								})()}
-
-								<div className="flex justify-end gap-2 pt-2 pb-1">
-									<Button
-										variant="outline"
-										onClick={() => setWrangleDs(null)}
-										disabled={isWrangling}
-									>
-										Cancel
-									</Button>
-									<Button onClick={handleTransform} disabled={isWrangling}>
-										{isWrangling ? (
-											<>
-												<Loader2 className="w-4 h-4 mr-2 animate-spin" />{" "}
-												Transforming...
-											</>
-										) : (
-											"Apply Transform"
-										)}
-									</Button>
-								</div>
-							</TabsContent>
-						</Tabs>
-					</div>
-				</DialogContent>
-			</Dialog>
 		</div>
 	);
 }
