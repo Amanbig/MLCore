@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useAuthStore } from "@/store/auth";
 import { api } from "@/lib/api";
 import { useNavigate } from "react-router-dom";
@@ -114,6 +114,17 @@ export function AuthPage() {
 	const [isLoading, setIsLoading] = useState(false);
 	const [showLoginPw, setShowLoginPw] = useState(false);
 	const [showSignupPw, setShowSignupPw] = useState(false);
+	const [disableSignup, setDisableSignup] = useState(false);
+
+	useEffect(() => {
+		api.get("/auth/config")
+			.then((res) => {
+				setDisableSignup(res.data.disable_signup);
+			})
+			.catch(() => {
+				// Defaults to false on network error
+			});
+	}, []);
 
 	const [loginData, setLoginData] = useState({ email: "", password: "" });
 	const [loginErrors, setLoginErrors] = useState({ email: "", password: "" });
@@ -215,9 +226,9 @@ export function AuthPage() {
 					</div>
 
 					<Tabs defaultValue="login" className="w-full">
-						<TabsList className="grid w-full grid-cols-2">
+						<TabsList className={`grid w-full ${disableSignup ? "grid-cols-1" : "grid-cols-2"}`}>
 							<TabsTrigger value="login">Login</TabsTrigger>
-							<TabsTrigger value="signup">Sign Up</TabsTrigger>
+							{!disableSignup && <TabsTrigger value="signup">Sign Up</TabsTrigger>}
 						</TabsList>
 
 						{/* ── Login ── */}

@@ -30,6 +30,34 @@ STATIC_DIR = Path(__file__).parent.parent / "static"
 async def lifespan(app: FastAPI):
     alembic_cfg = Config("alembic.ini")
     command.upgrade(alembic_cfg, "head")
+
+    from src.common.config.config import settings
+
+    # Check if we should seed a default admin
+    if settings.DEFAULT_ADMIN_EMAIL and settings.DEFAULT_ADMIN_PASSWORD:
+        from src.common.db.session import SessionLocal
+        from src.modules.user.schema import UserCreate
+        from src.modules.user.service import UserService
+
+        with SessionLocal() as db:
+            user_service = UserService()
+
+            # Check if user already exists
+            existing_user = user_service.get_user(
+                db=db, filters={"email": settings.DEFAULT_ADMIN_EMAIL}
+            )
+            if not existing_user:
+                logger.info(f"Seeding default admin user: {settings.DEFAULT_ADMIN_EMAIL}")
+                user_service.create_user(
+                    db=db,
+                    data=UserCreate(
+                        username="admin",
+                        email=settings.DEFAULT_ADMIN_EMAIL,
+                        password=settings.DEFAULT_ADMIN_PASSWORD,
+                        phone="0000000000",
+                    ),
+                )
+
     yield
 
 
