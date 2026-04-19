@@ -138,8 +138,10 @@ export function DatasetsPage() {
 	const [isWrangling, setIsWrangling] = useState(false);
 	const [cleanStrategy, setCleanStrategy] = useState("drop_nulls");
 	const [cleanCols, setCleanCols] = useState<string[]>([]);
+	const [cleanSearch, setCleanSearch] = useState("");
 	const [transformStrategy, setTransformStrategy] = useState("standard_scaler");
 	const [transformCols, setTransformCols] = useState<string[]>([]);
+	const [transformSearch, setTransformSearch] = useState("");
 
 	// Edit/rename dialog state
 	const [editDs, setEditDs] = useState<Dataset | null>(null);
@@ -343,51 +345,92 @@ export function DatasetsPage() {
 
 	// ── preview table ──────────────────────────────────────────────────
 	const PreviewTable = ({ ds }: { ds: Dataset }) => {
-		const preview = ds.dataset_metadata?.preview ?? [];
+		const [page, setPage] = useState(1);
+		const [data, setData] = useState<any[]>([]);
+		const [totalRows, setTotalRows] = useState(0);
+		const [totalPages, setTotalPages] = useState(0);
+		const [loading, setLoading] = useState(false);
+		const limit = 50;
+
+		useEffect(() => {
+			let isMounted = true;
+			const fetchData = async () => {
+				setLoading(true);
+				try {
+					const res = await api.get(`/dataset/${ds.id}/data?page=${page}&limit=${limit}`);
+					if (isMounted) {
+						setData(res.data.data);
+						setTotalRows(res.data.total_rows);
+						setTotalPages(res.data.total_pages);
+					}
+				} catch (err) {
+					if (isMounted) toast.error("Failed to load data for preview");
+				} finally {
+					if (isMounted) setLoading(false);
+				}
+			};
+			fetchData();
+			return () => { isMounted = false; };
+		}, [ds.id, page]);
+
 		const dtypes = ds.dataset_metadata?.dtypes ?? {};
 		const missing = ds.dataset_metadata?.missing_percentage ?? {};
 		const cols = Object.keys(dtypes);
-		if (preview.length === 0)
+
+		if (loading && data.length === 0) {
+			return <div className="flex justify-center p-8"><Loader2 className="w-6 h-6 animate-spin text-muted-foreground" /></div>;
+		}
+
+		if (!loading && data.length === 0)
 			return (
 				<p className="text-sm text-muted-foreground py-4 text-center">
 					No preview data available.
 				</p>
 			);
 		return (
-			<div className="overflow-auto rounded-lg border">
-				<table className="min-w-full text-xs">
-					<thead className="bg-muted/60 sticky top-0">
-						<tr>
-							{cols.map((c) => (
-								<th
-									key={c}
-									className="px-3 py-2 text-left font-semibold whitespace-nowrap border-b"
-								>
-									<div>{c}</div>
-									<div className="text-muted-foreground font-normal">
-										{dtypes[c]}
-									</div>
-								</th>
-							))}
-						</tr>
-					</thead>
-					<tbody>
-						{preview.map((row, i) => (
-							<tr
-								key={i}
-								className="border-b last:border-0 hover:bg-muted/30 transition-colors"
-							>
+			<div className="space-y-4">
+				<div className="overflow-auto rounded-lg border max-h-[500px]">
+					<table className="min-w-full text-xs">
+						<thead className="bg-muted/60 sticky top-0 z-10">
+							<tr>
 								{cols.map((c) => (
-									<td key={c} className="px-3 py-1.5 whitespace-nowrap">
-										{String(row[c] ?? "—")}
-									</td>
+									<th
+										key={c}
+										className="px-3 py-2 text-left font-semibold whitespace-nowrap border-b bg-muted/60 backdrop-blur-sm"
+									>
+										<div>{c}</div>
+										<div className="text-muted-foreground font-normal">
+											{dtypes[c]}
+										</div>
+									</th>
 								))}
 							</tr>
-						))}
-					</tbody>
-				</table>
+						</thead>
+						<tbody>
+							{data.map((row, i) => (
+								<tr
+									key={i}
+									className="border-b last:border-0 hover:bg-muted/30 transition-colors"
+								>
+									{cols.map((c) => (
+										<td key={c} className="px-3 py-1.5 whitespace-nowrap">
+											{String(row[c] ?? "—")}
+										</td>
+									))}
+								</tr>
+							))}
+						</tbody>
+					</table>
+				</div>
+                <div className="flex items-center justify-between text-sm">
+                    <span className="text-muted-foreground">Showing {(page-1)*limit + 1} to {Math.min(page*limit, totalRows)} of {totalRows} rows</span>
+                    <div className="flex gap-2">
+                        <Button variant="outline" size="sm" onClick={() => setPage(page - 1)} disabled={page <= 1 || loading}>Previous</Button>
+                        <Button variant="outline" size="sm" onClick={() => setPage(page + 1)} disabled={page >= totalPages || loading}>Next</Button>
+                    </div>
+                </div>
 				{cols.some((c) => (missing[c] ?? 0) > 0) && (
-					<div className="p-3 border-t bg-muted/20 space-y-1">
+					<div className="p-3 border rounded-lg bg-muted/20 space-y-1">
 						<p className="text-xs font-medium text-muted-foreground mb-2">
 							Missing Values
 						</p>
@@ -852,40 +895,46 @@ export function DatasetsPage() {
 									No version history found.
 								</p>
 							) : (
-								<div className="space-y-3">
+								<div className="relative border-l-2 border-muted/60 ml-4 space-y-6 py-4">
 									{[...versions]
 										.sort((a, b) => a.version.localeCompare(b.version))
 										.map((v) => (
 											<div
 												key={v.id}
-												className="rounded-lg border p-3 space-y-1.5 hover:bg-muted/30 transition-colors"
+												className="relative pl-6"
 											>
-												<div className="flex items-center justify-between">
-													<div className="flex items-center gap-2">
-														<Badge
-															variant="secondary"
-															className="font-mono text-xs"
-														>
-															v{v.version}
-														</Badge>
-														{!v.parent_id && (
+												{/* Connecting dot */}
+												<div className="absolute w-3.5 h-3.5 bg-primary/80 rounded-full -left-[8px] top-4 ring-4 ring-background" />
+
+												<div className="rounded-xl border bg-card text-card-foreground shadow-sm p-4 space-y-2 hover:border-primary/50 transition-colors hover:shadow-md cursor-default">
+													<div className="flex items-center justify-between">
+														<div className="flex items-center gap-2">
 															<Badge
-																variant="outline"
-																className="text-xs text-primary border-primary/40"
+																variant="secondary"
+																className="font-mono text-xs"
 															>
-																original
+																v{v.version}
 															</Badge>
-														)}
+															{!v.parent_id && (
+																<Badge
+																	variant="outline"
+																	className="text-xs text-primary border-primary/40"
+																>
+																	original
+																</Badge>
+															)}
+														</div>
+														<span className="text-[10px] uppercase font-bold tracking-wider text-muted-foreground">
+															{new Date(v.created_at).toLocaleDateString()}
+														</span>
 													</div>
-													<span className="text-xs text-muted-foreground">
-														{new Date(v.created_at).toLocaleDateString()}
-													</span>
+													<p className="text-sm font-semibold">{v.name}</p>
+													<div className="flex items-center gap-3 text-xs text-muted-foreground">
+														<span className="flex items-center gap-1"><BarChart3 className="w-3 h-3"/> {v.rows.toLocaleString()}</span>
+														<span className="flex items-center gap-1"><Filter className="w-3 h-3"/> {v.columns}</span>
+														<span className="flex items-center gap-1"><Sigma className="w-3 h-3"/> {v.file?.file_type?.toUpperCase() ?? "—"}</span>
+													</div>
 												</div>
-												<p className="text-sm font-medium">{v.name}</p>
-												<p className="text-xs text-muted-foreground">
-													{v.rows.toLocaleString()} rows · {v.columns} cols ·{" "}
-													{v.file?.file_type?.toUpperCase() ?? "—"}
-												</p>
 											</div>
 										))}
 								</div>
@@ -900,10 +949,11 @@ export function DatasetsPage() {
 				open={!!explorerDs}
 				onOpenChange={(o) => !o && setExplorerDs(null)}
 			>
-				<SheetContent className="w-full sm:max-w-3xl overflow-y-auto">
+				<SheetContent className="w-full sm:max-w-4xl flex flex-col h-full p-4 sm:p-6 overflow-hidden">
 					{explorerDs && (
 						<>
-							<SheetHeader className="mb-4">
+							<div className="flex-1 overflow-y-auto overflow-x-hidden pr-2 space-y-6">
+								<SheetHeader className="mb-2">
 								<SheetTitle className="flex items-center gap-2">
 									<Database className="w-5 h-5" />
 									{explorerDs.name}
@@ -1251,10 +1301,11 @@ export function DatasetsPage() {
 									})()}
 								</TabsContent>
 							</Tabs>
+							</div>
 
-							<div className="mt-4 flex gap-2">
+							<div className="mt-4 pt-4 border-t flex gap-2 shrink-0 bg-background">
 								<Button
-									className="gap-2 flex-1"
+									className="gap-2 flex-1 shadow-sm"
 									onClick={() => {
 										setWrangleDs(explorerDs);
 										setExplorerDs(null);
@@ -1264,7 +1315,7 @@ export function DatasetsPage() {
 								</Button>
 								<Button
 									variant="outline"
-									className="gap-2"
+									className="gap-2 shadow-sm"
 									onClick={() => {
 										openEdit(explorerDs);
 										setExplorerDs(null);
@@ -1274,7 +1325,7 @@ export function DatasetsPage() {
 								</Button>
 								<Button
 									variant="outline"
-									className="gap-2"
+									className="gap-2 shadow-sm"
 									onClick={() => handleRefresh(explorerDs.id, explorerDs.name)}
 								>
 									<RefreshCw className="w-4 h-4" /> Refresh
@@ -1351,6 +1402,7 @@ export function DatasetsPage() {
 												? prev.filter((c) => c !== col)
 												: [...prev, col],
 										);
+									const filteredCols = cleanSearch ? allCols.filter(c => c.toLowerCase().includes(cleanSearch.toLowerCase())) : allCols;
 									return (
 										<div className="space-y-1.5">
 											<div className="flex items-center justify-between">
@@ -1373,11 +1425,17 @@ export function DatasetsPage() {
 													</button>
 												</div>
 											</div>
+											<Input
+												placeholder="Search columns..."
+												value={cleanSearch}
+												onChange={(e) => setCleanSearch(e.target.value)}
+												className="h-8 text-xs"
+											/>
 											<p className="text-xs text-muted-foreground">
 												Leave all unselected to apply to every column.
 											</p>
 											<div className="rounded-lg border bg-muted/20 p-2 max-h-40 overflow-y-auto grid grid-cols-2 gap-1">
-												{allCols.map((col) => (
+												{filteredCols.map((col) => (
 													<label
 														key={col}
 														className="flex items-center gap-2 px-2 py-1.5 rounded-md hover:bg-muted/50 cursor-pointer text-xs"
@@ -1509,6 +1567,8 @@ export function DatasetsPage() {
 												: [...prev, col],
 										);
 
+									const filteredCols = transformSearch ? eligibleCols.filter(c => c.toLowerCase().includes(transformSearch.toLowerCase())) : eligibleCols;
+
 									return (
 										<div className="space-y-1.5">
 											<div className="flex items-center justify-between">
@@ -1536,8 +1596,14 @@ export function DatasetsPage() {
 													</button>
 												</div>
 											</div>
+											<Input
+												placeholder="Search columns..."
+												value={transformSearch}
+												onChange={(e) => setTransformSearch(e.target.value)}
+												className="h-8 text-xs"
+											/>
 											<div className="rounded-lg border bg-muted/20 p-2 max-h-44 overflow-y-auto grid grid-cols-2 gap-1">
-												{eligibleCols.map((col) => {
+												{filteredCols.map((col) => {
 													const dtype = dtypes[col] as string;
 													const isCat =
 														!dtype.includes("int") && !dtype.includes("float");

@@ -149,3 +149,19 @@ def get_dataset_versions(
     return dataset_service.get_dataset_versions(
         db=db, dataset_id=dataset_id, user_id=token_payload.id
     )
+
+@router.get("/dataset/{dataset_id}/data")
+def get_dataset_data(
+    request: Request,
+    dataset_id: UUID,
+    page: int = 1,
+    limit: int = 50,
+    db: Session = Depends(get_db),
+    token_payload: AuthToken = Depends(
+        dataset_service.auth_service.security_service.verify_auth_token
+    ),
+):
+    """Return paginated rows from the dataset."""
+    return dataset_service.get_dataset_data(
+        db=db, dataset_id=dataset_id, user_id=token_payload.id, page=page, limit=limit
+    )

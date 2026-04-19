@@ -364,3 +364,25 @@ class DatasetService:
         elif file.file_type == "xlsx":
             dataset = pd.read_excel(file.location)
         return dataset.corr().to_dict()
+
+    @log_execution
+    def get_dataset_data(self, db: Session, dataset_id: UUID, user_id: UUID, page: int = 1, limit: int = 50):
+        dataset = self.get_dataset(db=db, dataset_id=dataset_id)
+        if dataset.user_id != user_id:
+            raise HTTPException(status_code=403, detail="Unauthorized")
+        
+        df, file_obj, loc = self._load_dataframe(db=db, file_id=dataset.file_id)
+        
+        total_rows = len(df)
+        start_idx = (page - 1) * limit
+        end_idx = start_idx + limit
+        
+        sliced_df = df.iloc[start_idx:end_idx].fillna("")
+        
+        return {
+            "data": sliced_df.to_dict(orient="records"),
+            "total_rows": total_rows,
+            "page": page,
+            "limit": limit,
+            "total_pages": (total_rows + limit - 1) // limit if limit > 0 else 0
+        }
