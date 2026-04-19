@@ -126,6 +126,8 @@ All routes are prefixed with `/api`.
 | `GET` | `/api/health` | Health check + server version |
 | `POST` | `/api/auth/login` | Login, returns JWT cookie |
 | `POST` | `/api/auth/logout` | Logout, clears cookie |
+| `GET` | `/api/auth/config` | Returns `{disable_signup: bool}` (public) |
+| `POST` | `/api/auth/signup` | Register — disabled when `DISABLE_SIGNUP=True` |
 | `GET` | `/api/datasets` | List datasets |
 | `POST` | `/api/dataset/upload` | Upload a file |
 | `POST` | `/api/dataset` | Create dataset record |
@@ -157,11 +159,33 @@ uv run alembic upgrade head
 
 ## Configuration
 
-Settings are loaded from environment variables (via `pydantic_settings`). Defaults work out of the box for local development.
+Settings are loaded from environment variables (via `pydantic_settings`). Defaults work out of the box for local development. Create a `.env` file inside `server/` to override any value.
 
 | Variable | Default | Description |
 |---|---|---|
-| `APP_VERSION` | read from `pyproject.toml` | Injected by Docker build |
+| `DATABASE_URL` | `sqlite:///./mlcore_db.db` | SQLite path (override for Docker volume) |
+| `APP_ENV` | `development` | Runtime environment tag |
+| `JWT_SECRET` | `development` | **Change this in production!** |
+| `JWT_ALGORITHM` | `HS256` | JWT signing algorithm |
+| `JWT_EXPIRY` | `7` | Token lifetime in days |
+| `COOKIE_DOMAIN` | _(empty)_ | Cookie domain restriction |
+| `BCRYPT_ROUNDS` | `12` | bcrypt work factor |
+| `APP_VERSION` | read from `pyproject.toml` | Injected automatically by Docker build |
+| `DISABLE_SIGNUP` | `False` | Set `True` to disable public registration |
+| `DEFAULT_ADMIN_EMAIL` | _(none)_ | Seed an admin account on first boot |
+| `DEFAULT_ADMIN_PASSWORD` | _(none)_ | Password for the seeded admin account |
+
+### Example `.env` for a locked-down deployment
+
+```env
+JWT_SECRET=change-me-in-production
+DISABLE_SIGNUP=True
+DEFAULT_ADMIN_EMAIL=admin@yourcompany.com
+DEFAULT_ADMIN_PASSWORD=StrongP@ssw0rd!
+```
+
+When `DEFAULT_ADMIN_EMAIL` + `DEFAULT_ADMIN_PASSWORD` are set, the server automatically creates the admin user on first startup (idempotent — safe to restart).
+When `DISABLE_SIGNUP=True`, `POST /api/auth/signup` returns `403` and the client hides the Sign Up tab automatically.
 
 ---
 

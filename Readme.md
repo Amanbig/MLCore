@@ -22,13 +22,15 @@ A self-hosted machine learning platform — upload datasets, wrangle data, train
 ## Features
 
 - 📁 **Dataset management** — upload CSV / Excel files, version datasets, explore stats, wrangle (normalise, encode, drop nulls)
+- 📊 **Rich statistics** — per-column descriptive stats (count, mean, std, quartiles) + Pearson correlation heatmap
 - 🤖 **Model training** — train scikit-learn models (classifiers & regressors) with configurable hyperparameters loaded live from the library
 - 🔁 **Retraining & versioning** — retrain any model to create a new version with full lineage tracking
-- 🧪 **In-browser testing** — run single-row predictions directly from the UI
+- 🧪 **In-browser testing** — run single-row predictions directly from the UI (Sheet sidebar, not a blocking dialog)
 - ⬇️ **Model download** — download trained `.joblib` files for use outside the platform
-- 📊 **Dashboard** — live stats: model count, dataset count, accuracy distribution, storage usage
+- 📈 **Dashboard** — live stats: model count, dataset count, accuracy distribution, storage usage
 - 🌙 **Dark / Light / System theme**
 - 🔐 **JWT authentication** — cookie-based, HTTPOnly
+- 🛡️ **Deployment controls** — disable public signup + seed a default admin via environment variables
 
 ---
 
@@ -53,6 +55,32 @@ docker run -d \
 ```
 
 Open **http://localhost:8000** — UI and API both served from the same port.
+
+### Environment Variables
+
+All variables are optional — the defaults work immediately. Pass them with `-e` to `docker run` or in a `docker-compose.yml`.
+
+| Variable | Default | Description |
+|---|---|---|
+| `JWT_SECRET` | `development` | **Set this to a secret value in production** |
+| `DISABLE_SIGNUP` | `False` | `True` to hide the Sign Up tab and block the endpoint |
+| `DEFAULT_ADMIN_EMAIL` | _(none)_ | Auto-create an admin on first boot |
+| `DEFAULT_ADMIN_PASSWORD` | _(none)_ | Password for the auto-created admin |
+
+Example with a locked-down admin-only instance:
+
+```bash
+docker run -d \
+  -p 8000:8000 \
+  -v mlcore-db:/data \
+  -v mlcore-uploads:/app/server/uploads \
+  -e JWT_SECRET=my-super-secret \
+  -e DISABLE_SIGNUP=True \
+  -e DEFAULT_ADMIN_EMAIL=admin@mycompany.com \
+  -e DEFAULT_ADMIN_PASSWORD=StrongP@ssw0rd! \
+  --name mlcore \
+  procoder588/mlcore:latest
+```
 
 ### Volumes
 
